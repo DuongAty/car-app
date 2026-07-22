@@ -1,0 +1,84 @@
+{
+  "@@locale": "en",
+  "appTitle": "Viet KTV",
+  "languageVi": "VI",
+  "languageEn": "EN",
+  "homeWelcome": "WELCOME TO",
+  "homeSubtitle": "Choose a music source to begin",
+  "sourceYoutubeSubtitle": "A massive music & video\nlibrary",
+  "sourceSoundcloudSubtitle": "Exclusive DJ & Remix\ntracks",
+  "sourceMcloudSubtitle": "High-quality DJ Sets\n& Podcasts",
+  "topConnectPhone": "PHONE LINK",
+  "topSettings": "SETTINGS",
+  "topExit": "EXIT",
+  "hintSelect": "Select",
+  "hintBack": "Back",
+  "hintClearQueue": "Clear entire queue",
+  "hintQueueCount": "Queue list ({count})",
+  "@hintQueueCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hintNavigate": "Navigate",
+  "hintChooseAndPlay": "Select / Play song",
+  "hintSelectedQueue": "View selected list ({count})",
+  "@hintSelectedQueue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hintFavorites": "Favorites",
+  "songSearch": "SEARCH",
+  "songList": "LIST",
+  "songSelected": "SELECTED",
+  "karaokeLabel": "Karaoke",
+  "panelSuggestions": "RECOMMENDED FOR YOU",
+  "panelSearchResults": "SEARCH RESULTS",
+  "searchPlaceholder": "Search songs, singers, or keywords...",
+  "searchResultCount": "{count} results",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchEmpty": "No matching results found",
+  "searchIdlePrompt": "Type a keyword and press TÌM to search",
+  "searchLoading": "Searching...",
+  "searchFailed": "Couldn't load results. Try again.",
+  "recommendationsLoading": "Loading suggestions...",
+  "recommendationsFailed": "Couldn't load suggestions.",
+  "recommendationsEmpty": "No suggestions yet.",
+  "playbackIdlePrompt": "Select a song to begin",
+  "playbackLoading": "Loading video...",
+  "playbackFailed": "Couldn't play this video.",
+  "queueItemCount": "{count} songs",
+  "@queueItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueEmpty": "No songs queued yet.\nPress + on a search result to add one.",
+  "queueRemoveTooltip": "Remove from queue",
+  "keyboardSearch": "SEARCH",
+  "keyboardClear": "CLEAR",
+  "keyboardSpace": "SPACE",
+  "keyboardBack": "BACKSPACE",
+  "keyboardNumberMode": "123",
+  "mockYoutubeChannel": "Karaoke 4 You",
+  "mockOfficialChannel": "Son Tung M-TP Official",
+  "mockBeatChannel": "Selected Karaoke Tracks",
+  "mockToneNam": "Male Key Karaoke",
+  "mockAcoustic": "Acoustic Cover",
+  "mockPiano": "Piano Cover",
+  "mockLive": "Live Performance",
+  "mockDjRemix": "Dai Meo Remix"
+}

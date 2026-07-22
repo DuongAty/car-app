@@ -1,0 +1,84 @@
+{
+  "@@locale": "vi",
+  "appTitle": "Viet KTV",
+  "languageVi": "VI",
+  "languageEn": "EN",
+  "homeWelcome": "CHÀO MỪNG ĐẾN VỚI",
+  "homeSubtitle": "Chọn nguồn nhạc để bắt đầu",
+  "sourceYoutubeSubtitle": "Kho nhạc & Video\nkhổng lồ",
+  "sourceSoundcloudSubtitle": "Nhạc DJ & Remix\nđộc quyền",
+  "sourceMcloudSubtitle": "DJ Sets & Podcasts\nchất lượng cao",
+  "topConnectPhone": "KẾT NỐI ĐT",
+  "topSettings": "CÀI ĐẶT",
+  "topExit": "THOÁT",
+  "hintSelect": "Chọn",
+  "hintBack": "Quay lại",
+  "hintClearQueue": "Xóa tất cả hàng chờ",
+  "hintQueueCount": "Danh sách chờ ({count})",
+  "@hintQueueCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hintNavigate": "Điều hướng",
+  "hintChooseAndPlay": "Chọn / Phát bài",
+  "hintSelectedQueue": "Xem danh sách đã chọn ({count})",
+  "@hintSelectedQueue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hintFavorites": "Yêu thích",
+  "songSearch": "TÌM BÀI",
+  "songList": "DANH SÁCH",
+  "songSelected": "ĐÃ CHỌN",
+  "karaokeLabel": "Karaoke",
+  "panelSuggestions": "GỢI Ý CHO BẠN",
+  "panelSearchResults": "KẾT QUẢ TÌM KIẾM",
+  "searchPlaceholder": "Tìm bài hát, ca sĩ hoặc từ khóa...",
+  "searchResultCount": "{count} kết quả",
+  "@searchResultCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "searchEmpty": "Không có kết quả phù hợp",
+  "searchIdlePrompt": "Nhập từ khóa rồi bấm TÌM để tìm kiếm",
+  "searchLoading": "Đang tìm kiếm...",
+  "searchFailed": "Không tải được kết quả. Thử lại.",
+  "recommendationsLoading": "Đang tải gợi ý...",
+  "recommendationsFailed": "Không tải được gợi ý.",
+  "recommendationsEmpty": "Chưa có gợi ý nào.",
+  "playbackIdlePrompt": "Chọn một bài hát để bắt đầu",
+  "playbackLoading": "Đang tải video...",
+  "playbackFailed": "Không phát được video này.",
+  "queueItemCount": "{count} bài",
+  "@queueItemCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "queueEmpty": "Chưa có bài hát nào trong hàng chờ.\nBấm + ở kết quả tìm kiếm để thêm bài hát.",
+  "queueRemoveTooltip": "Xóa khỏi hàng chờ",
+  "keyboardSearch": "TÌM",
+  "keyboardClear": "XÓA",
+  "keyboardSpace": "DẤU CÁCH",
+  "keyboardBack": "XÓA KÝ TỰ",
+  "keyboardNumberMode": "123",
+  "mockYoutubeChannel": "Karaoke 4 You",
+  "mockOfficialChannel": "Sơn Tùng M-TP Official",
+  "mockBeatChannel": "Nhạc Karaoke Tuyển Chọn",
+  "mockToneNam": "Karaoke Tone Nam",
+  "mockAcoustic": "Bản phối Acoustic",
+  "mockPiano": "Bản phối Piano",
+  "mockLive": "Biểu diễn trực tiếp",
+  "mockDjRemix": "Đại Mèo Remix"
+}

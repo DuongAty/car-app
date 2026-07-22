@@ -1,0 +1,171 @@
+import 'package:flutter/material.dart';
+import 'package:viet_ktv/l10n/app_localizations.dart';
+
+import '../../../../core/models/bottom_hint_item.dart';
+import '../../../../core/models/nav_action_item.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../models/song_item.dart';
+
+abstract final class SongBrowserMockData {
+  // Non-character keys carry a token instead of the glyph they type.
+  static const String keyBackspace = 'BACK';
+  static const String keySearch = 'TIM';
+  static const String keySpace = 'SPACE';
+  static const String keyClear = 'CLEAR';
+  static const String keyNumbers = '123';
+
+  /// Position of "ĐÃ CHỌN" in [topActions] — tapping it navigates to the
+  /// queue screen instead of just toggling the highlighted tab.
+  static const int selectedTabIndex = 2;
+
+  static List<NavActionItem> topActions(
+    AppLocalizations l10n,
+    int queueCount,
+  ) => [
+    NavActionItem(label: l10n.songSearch, icon: Icons.search),
+    NavActionItem(label: l10n.songList, icon: Icons.grid_view_rounded),
+    NavActionItem(
+      label: l10n.songSelected,
+      icon: Icons.playlist_add_check_rounded,
+      badgeCount: queueCount > 0 ? queueCount : null,
+    ),
+    NavActionItem(label: l10n.topSettings, icon: Icons.settings_outlined),
+    NavActionItem(label: l10n.topExit, icon: Icons.power_settings_new_rounded),
+  ];
+
+  static List<BottomHintItem> bottomHints(AppLocalizations l10n) => [
+    BottomHintItem(
+      id: 'navigate',
+      badgeIcon: Icons.menu_rounded,
+      label: l10n.hintNavigate,
+    ),
+    BottomHintItem(
+      id: 'play',
+      badgeText: 'OK',
+      label: l10n.hintChooseAndPlay,
+      accentColor: AppColors.greenDeep,
+    ),
+  ];
+
+  static List<BottomHintItem> trailingHints(
+    AppLocalizations l10n,
+    int queueCount,
+  ) => [
+    BottomHintItem(
+      id: 'queue',
+      badgeText: 'C',
+      label: l10n.hintSelectedQueue(queueCount),
+      accentColor: AppColors.yellow,
+    ),
+    BottomHintItem(
+      id: 'favorites',
+      badgeText: 'D',
+      label: l10n.hintFavorites,
+      accentColor: AppColors.blue,
+    ),
+    BottomHintItem(
+      id: 'back',
+      badgeIcon: Icons.undo_rounded,
+      label: l10n.hintBack,
+    ),
+  ];
+
+  static List<SongItem> searchResults(AppLocalizations l10n) => [
+    SongItem(
+      id: '9',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Karaoke)',
+      subtitle: l10n.mockYoutubeChannel,
+      duration: '4:32',
+      thumbnailSeed: 9,
+      badge: null,
+    ),
+    SongItem(
+      id: '10',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Official MV)',
+      subtitle: l10n.mockOfficialChannel,
+      duration: '4:35',
+      thumbnailSeed: 10,
+      badge: null,
+    ),
+    SongItem(
+      id: '11',
+      title: 'Lạc Trôi - Sơn Tùng M-TP | Beat Chuẩn',
+      subtitle: l10n.mockBeatChannel,
+      duration: '4:31',
+      thumbnailSeed: 11,
+      badge: null,
+    ),
+    SongItem(
+      id: '12',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Tone Nam)',
+      subtitle: l10n.mockToneNam,
+      duration: '4:29',
+      thumbnailSeed: 12,
+      badge: null,
+    ),
+    SongItem(
+      id: '13',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Đại Mèo Remix)',
+      subtitle: l10n.mockDjRemix,
+      duration: '5:18',
+      thumbnailSeed: 13,
+      badge: null,
+    ),
+    SongItem(
+      id: '14',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Acoustic)',
+      subtitle: l10n.mockAcoustic,
+      duration: '4:40',
+      thumbnailSeed: 14,
+      badge: null,
+    ),
+    SongItem(
+      id: '15',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Live)',
+      subtitle: l10n.mockLive,
+      duration: '4:50',
+      thumbnailSeed: 15,
+      badge: null,
+    ),
+    SongItem(
+      id: '16',
+      title: 'Lạc Trôi - Sơn Tùng M-TP (Piano Ver.)',
+      subtitle: l10n.mockPiano,
+      duration: '4:12',
+      thumbnailSeed: 16,
+      badge: null,
+    ),
+  ];
+
+  static const List<List<String>> keyboardRows = [
+    [
+      'A',
+      'B',
+      'C',
+      'D',
+      'E',
+      'F',
+      'G',
+      'H',
+      'I',
+      'J',
+      'K',
+      'L',
+      'M',
+      keyBackspace,
+    ],
+    ['N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'],
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', keySearch],
+    [keySpace, keyClear, keyNumbers],
+  ];
+
+  static String keyboardLabel(AppLocalizations l10n, String key) {
+    return switch (key) {
+      keySearch => l10n.keyboardSearch,
+      keyClear => l10n.keyboardClear,
+      keySpace => l10n.keyboardSpace,
+      keyNumbers => l10n.keyboardNumberMode,
+      _ => key,
+    };
+  }
+}
