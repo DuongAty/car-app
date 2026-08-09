@@ -24,6 +24,16 @@ abstract final class AppTheme {
       colorScheme: colorScheme,
       splashFactory: NoSplash.splashFactory,
       highlightColor: Colors.transparent,
+      // Light fade for page/route changes (opacity only — no slide, so no
+      // full-screen relayout). The route sets the 220ms duration; this only
+      // picks the visual. Fade is the cheapest full-screen transition for the
+      // 2GB box; the heavier default zoom/slide is deliberately avoided.
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: {
+          for (final platform in TargetPlatform.values)
+            platform: const _FadePageTransitionsBuilder(),
+        },
+      ),
       textTheme: const TextTheme(
         displaySmall: AppTextStyles.display,
         headlineMedium: AppTextStyles.heading,
@@ -63,5 +73,22 @@ abstract final class AppTheme {
         ),
       ),
     );
+  }
+}
+
+/// Light fade for route changes — no slide/zoom, so no full-screen relayout.
+/// Duration is set by the route (`AppMotion.route`, 220ms), not here.
+class _FadePageTransitionsBuilder extends PageTransitionsBuilder {
+  const _FadePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return FadeTransition(opacity: animation, child: child);
   }
 }

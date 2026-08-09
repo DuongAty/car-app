@@ -8,7 +8,77 @@ Act as a senior Flutter engineer delivering production Android apps. Build UI wi
 
 ## Target Platform
 
-Android first, must support Android 10 (API 29) and above. All UI must behave correctly on common Android phone/TV sizes, handle small and large screens gracefully, and avoid layout overflow — landscape is the primary karaoke layout, since focus/D-pad navigation (remote control) is a first-class interaction, not just touch.
+Android first, must support Android 10 (API 29) and above. The primary deployment targets are low-cost Android TV/karaoke boxes with 2GB RAM and Android car head units / in-car entertainment screens. All UI must behave correctly on Android box displays, Android car screens, and common Android phone sizes, handle small and large screens gracefully, and avoid layout overflow — landscape is the primary karaoke layout, since focus/D-pad navigation, remote/control buttons, touch, and mixed input are first-class interactions.
+
+Do not treat this repository as a generic mobile-first Flutter app. Phones are supported for compatibility and testing, but product and performance decisions should prioritize karaoke sessions on Android box hardware and Android car screens.
+
+## 2GB RAM Box And Car-Screen Performance Rules
+
+Smooth playback on a 2GB RAM Android TV/karaoke box or low-cost Android car screen is a baseline requirement. Optimize directly for that hardware by default; do not add a separate "weak device mode" unless the user explicitly asks for one. Preserve the existing workflow and karaoke neon look while using the lightest implementation that works.
+
+Rendering rules:
+- Avoid continuous background animation, animated particles, animated gradients, bokeh/orb effects, large blur passes, and high-radius shadows.
+- Keep focus/button animations short and subtle. Avoid animation inside long lists, grids, search results, queue rows, favorites, or history rows.
+- Prefer static gradients, crisp borders, simple custom paint, and low-radius glow over `BackdropFilter`, large `MaskFilter.blur`, shader-heavy effects, or per-frame painting.
+- Never use `BackdropFilter` for stacked glass surfaces. Android TV boxes and car head units cannot afford full-screen texture reads per panel.
+- Reuse `LiquidGlass`/design tokens, but keep `LiquidGlassDetail.simple` for small or repeated elements.
+
+Media and image rules:
+- Decode network and asset thumbnails at display size using `cacheWidth`, `cacheHeight`, and low `filterQuality`.
+- Keep Flutter's global `ImageCache` bounded for box RAM limits. Do not increase it without measuring.
+- Keep visualizer/background videos optional and off by default. If disabled, do not create or initialize their `VideoPlayerController`.
+- Visualizer assets should be MP4/H.264, 720p or lower, 24fps, no audio track, around 900kbps unless measured otherwise.
+- Do not bundle old/raw/generated media folders once optimized replacements are in use.
+
+List and state rules:
+- Use lazy builders for scrollable content: `ListView.builder`, `ListView.separated`, `ListView.custom`, and `GridView.builder`.
+- Keep offscreen cache extent small and prefer `ClampingScrollPhysics` for TV/box-first lists.
+- Do not build whole dynamic queues/lists/grids with `children: [...]` if the collection can grow.
+- Throttle playback progress UI updates; do not rebuild large UI trees on every audio/video tick when second-level accuracy is enough.
+
+Verification rules:
+- `flutter run` debug mode is not representative for performance on 2GB boxes or low-cost Android car screens.
+- Test performance-sensitive changes using a release APK on the target Android box, Android car screen, emulator, or BlueStacks:
+
+```bash
+flutter build apk --release --dart-define=MUSIC_SDK_LICENSE_KEY=<key>
+adb install -r build/app/outputs/flutter-apk/app-release.apk
+```
+
+## Performance Optimization Playbook (applied patterns + gotchas)
+
+These patterns are already applied across the codebase. Follow them when adding features and copy them when optimizing further; do not undo them.
+
+### Rebuild scoping (Riverpod)
+- Watch the narrowest slice with `.select`. Never `ref.watch(wholeProvider)` at a page root when only part of the state is rendered — wrap each panel in its own `Consumer` that selects just its slice (see `song_browser_page.dart`, `settings_page.dart`, `source_selection_page.dart`).
+- Isolate the ~1s playback tick in tiny leaf `ConsumerWidget`s so it never rebuilds a large subtree (see `preview_player.dart` `_ProgressSection`/`_PlayPauseButton`, `bottom_mini_player.dart` `_MiniProgressTrack`).
+- Watch per-row state (favorite membership, queue selection) inside the row via `.select`, not by threading it from a panel that watches the whole list (see `core/shared/widgets/favorite_toggle.dart`, `selected_queue_panel.dart`).
+- GOTCHA: `songBrowserProvider` is `autoDispose.family` and depends on `nowPlayingProvider.notifier`, so it is recreated when playback state rebuilds (e.g. a settings change). Widgets that hold its controller across events must use `ref.watch(provider.notifier)` (NOT `ref.read`), or their callbacks can call a disposed controller.
+- GOTCHA: a provider that owns expensive native resources (video/audio decoders) must NOT `ref.watch` a volatile setting in its create body to seed a value — that makes the provider a dependency of the setting, so changing it (e.g. dragging the volume slider) DISPOSES and recreates the provider, tearing down the live decoder and stopping playback. Seed with `ref.read` and apply ongoing changes in place via `ref.listen` (see `nowPlayingProvider` seeding `musicVolume`/`visualizerEnabled`/`videoQuality`).
+
+### Painting cost
+- Wrap focus/selection-independent heavy paints in `RepaintBoundary` so focus tweens don't re-rasterize them: thumbnails (`song_thumbnail.dart`), the `LiquidGlass` edge painter, the browse-grid image (`category_grid_panel.dart`), `VideoPlayer`, and the static shell background (`karaoke_shell.dart`).
+- Prefer an instant focus highlight (`Container`) over `AnimatedContainer` for anything in a list — a tweened blurred `BoxShadow` re-blurs every frame while scrolling.
+- App-wide: overscroll stretch is suppressed (`_NoOverscrollScrollBehavior` in `app.dart`) and `CollapsibleAxis` defaults to `Duration.zero` (instant). Page/route changes use a light opacity-only fade — `_FadePageTransitionsBuilder` in `app_theme.dart` picks the fade, `_FadePageRoute` in `app_router.dart` sets the 220ms duration (`AppMotion.route`). Fade is used (not slide/zoom) because it doesn't relayout the screen; keep it fade-only and short.
+- Keep `MaskFilter.blur` and `BoxShadow.blurRadius` small (≤16). A wide gaussian re-rasterized per frame is the single costliest thing on this GPU.
+
+### Caching & network (avoid redundant slow calls)
+- Recommendations: stale-while-revalidate, persisted (`RecommendationsCacheRepository`).
+- Category/artist/typed search results: in-session `SearchResultsCache` + in-flight/duplicate-query dedupe in `SongBrowserController._runSearch`.
+- Playable links: 90s in-memory TTL cache in `NowPlayingController`, evicted on playback failure (links expire) — kills re-resolves on repeat-one/previous/repeat-all.
+- Native SDK init is deferred: `main()` fires `ensureMusicSdkInitialized()` without awaiting; `MusicSdkSongRepository` awaits it before its first call.
+- RULE: a cache consumed by an `autoDispose` provider must itself live in a NON-autoDispose provider so it survives leaving/returning to the page.
+
+### Memory
+- Cap unbounded session-lived lists: the playback back-stack is capped (`QueuePlaybackController._maxHistory = 50`); history persistence caps at 100. Add a cap to any new always-growing list.
+
+### Testing gotchas (or tests hang/fail)
+- Any test that pumps `SongBrowserPage` (or otherwise builds `songBrowserProvider`) must override `localStorageServiceProvider` with `FakeLocalStorageService` — including inline `ProviderScope`s a single test builds itself. Otherwise the recommendations spinner never settles and `pumpAndSettle` times out.
+- Do NOT cache a module-global `Future` that app code awaits; a single cached `Future` awaited across `flutter_test` zones hangs. Return a fresh `Future.value()` in the no-op/test path (see `ensureMusicSdkInitialized`).
+- Do NOT assert playback via `FakeMusicSdkPlatform.lastPlayableLinkTrackId` when a replay can be served from the link cache — read the real state instead: `ProviderScope.containerOf(...).read(nowPlayingProvider).playback`.
+
+### Known remaining wins (not yet done)
+- Build/APK (Tier 3): enable R8 + resource shrinking (`isMinifyEnabled`/`isShrinkResources`; keep-rules already exist in `proguard-rules.pro`), drop the `x86_64` ABI (or `--split-per-abi` for `arm64-v8a`), remove the unused `cupertino_icons` dependency, and delete the two unused `assets/browse/*_artist.jpg` images. Together ~145MB → ~95–100MB. Re-test search/playback after enabling R8 (MusicSDK is reflection-heavy).
 
 ## Commands
 
@@ -17,7 +87,7 @@ Android first, must support Android 10 (API 29) and above. All UI must behave co
 - `flutter analyze` — lint and static checks (must be clean before considering work done)
 - `flutter test` — run all unit/widget tests
 - `flutter test test/widget_test.dart` — run a single test file
-- `flutter build apk` — produce an Android build
+- `flutter build apk --release` — produce a performance-representative Android build
 - `dart format .` — format before finishing any change
 - Regenerate localizations (after editing `.arb` files) by running `flutter gen-l10n` or simply `flutter pub get` / `flutter run`, since `l10n.yaml` has `generate: true` wired through `pubspec.yaml`
 
@@ -45,9 +115,11 @@ This is the default and required visual language for every screen unless a user 
 - Dark cinematic backgrounds, never flat white surfaces; neon green/red/orange/purple/blue accents used sparingly.
 - Floating dark panels with subtle borders instead of plain containers; glow reserved for focus/active/selected/primary states.
 - D-pad/remote focus must be obvious (brighter border, stronger glow, or higher-contrast background) — touch and focus states must feel like one system.
+- Implement the neon look with lightweight effects suitable for 2GB RAM boxes. Prefer crisp rims and restrained glow over blur-heavy decoration, animated particles, or moving backgrounds.
 - Tokens first: never hardcode colors, spacing, radius, elevation, or text styles in feature screens — reuse/extend `lib/core/theme/app_colors.dart`, `app_spacing.dart`, `app_radius.dart`, `app_text_styles.dart`, `app_glows.dart`, `app_theme.dart`. Add a new token there before repeating a raw value.
 - Build shared widgets in `lib/core/shared/widgets/` before duplicating a visual pattern (cards, top nav, bottom hint bar, search shell, virtual keyboard keys, etc.) — extend existing ones like `GlowCard`, `KaraokeShell`, `AppTopNav`, `AppBottomHintBar`, `FocusableTile`, `VirtualKeyTile` rather than rebuilding.
 - When editing one area, don't redesign it in isolation — match existing tokens/panel shapes/focus treatment so it still looks like the same product.
+- Keep text, controls, and focus affordances readable on Android boxes and car screens viewed from a distance. Do not optimize visual density only for hand-held phones.
 
 ## Localization
 
@@ -72,5 +144,7 @@ Use `flutter_test` for widget and unit tests. Add tests for reusable components,
 - Create shared components before repeating UI blocks.
 - Keep feature boundaries clear; preserve the existing pattern inside each feature you touch.
 - Preserve the karaoke neon visual language unless explicitly overridden.
+- Prioritize Android box / Android car-screen karaoke usage over generic phone-first behavior.
 - Avoid temporary hacks, magic numbers, and tightly coupled widget code; structure screens for future expansion.
+- Preserve the 2GB RAM box performance budget: avoid new heavy effects, keep assets light, use lazy lists/grids, constrain image decode size, and avoid unnecessary rebuilds.
 - If a requested UI conflicts with maintainability, choose the maintainable approach and keep the code structured so visual changes stay easy later.

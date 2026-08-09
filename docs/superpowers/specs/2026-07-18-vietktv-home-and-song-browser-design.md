@@ -1,7 +1,7 @@
-# VietKTV Home And Song Browser Design
+# car-app Home And Song Browser Design
 
 ## Summary
-Build two Android-first Flutter screens for VietKTV:
+Build two Android-first Flutter screens for car-app:
 - a source selection home screen matching the provided neon karaoke reference
 - a song browser screen reached from the selected source card
 
@@ -61,7 +61,7 @@ Any later UI change in this repository should inherit this same visual language 
 ## Screen 1: Source Selection
 ### Layout
 The screen contains:
-- left-aligned VietKTV logo
+- left-aligned car-app logo
 - top-right action menu with connection/settings/exit
 - language toggle
 - centered welcome headline and subtitle

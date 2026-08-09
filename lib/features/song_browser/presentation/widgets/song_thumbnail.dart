@@ -30,83 +30,97 @@ class SongThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: width,
-      height: height,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xs),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (imageUrl != null && imageUrl!.isNotEmpty)
-              Image.network(
-                imageUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => _StageThumbnailFallback(seed: seed),
-              )
-            else
-              _StageThumbnailFallback(seed: seed),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.45),
-                  ],
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final cacheWidth = min((width * pixelRatio).ceil(), 220);
+    final cacheHeight = min((height * pixelRatio).ceil(), 140);
+
+    // The artwork is independent of the row's focus/selection state, but list
+    // rows rebuild on every D-pad move. A boundary caches this (shader gradient
+    // + silhouette, or a decoded network image) to a layer so it is not
+    // re-rasterized each time the highlight enters or leaves the row.
+    return RepaintBoundary(
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.xs),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (imageUrl != null && imageUrl!.isNotEmpty)
+                Image.network(
+                  imageUrl!,
+                  fit: BoxFit.cover,
+                  cacheWidth: cacheWidth,
+                  cacheHeight: cacheHeight,
+                  filterQuality: FilterQuality.low,
+                  errorBuilder: (_, _, _) =>
+                      _StageThumbnailFallback(seed: seed),
+                )
+              else
+                _StageThumbnailFallback(seed: seed),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.45),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (badge != null)
-              Positioned(
-                top: 4,
-                left: 4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.red,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    badge!,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
+              if (badge != null)
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.red,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      badge!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            if (durationLabel != null)
-              Positioned(
-                left: 4,
-                bottom: 4,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 1,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.black70,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    durationLabel!,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
+              if (durationLabel != null)
+                Positioned(
+                  left: 4,
+                  bottom: 4,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.black70,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      durationLabel!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.textPrimary,
+                        height: 1.2,
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -156,19 +170,19 @@ class _StageThumbPainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    // Out-of-focus stage lights behind the performer.
-    for (var i = 0; i < 5; i++) {
+    // Simple stage lights. Avoid per-row blur passes because song lists can
+    // show many thumbnails at once on low-memory TV boxes.
+    for (var i = 0; i < 3; i++) {
       final center = Offset(
         random.nextDouble() * size.width,
         random.nextDouble() * size.height * 0.7,
       );
-      final radius = size.height * (0.08 + random.nextDouble() * 0.16);
+      final radius = size.height * (0.05 + random.nextDouble() * 0.11);
       canvas.drawCircle(
         center,
         radius,
         Paint()
-          ..color = stage.withValues(alpha: 0.20 + random.nextDouble() * 0.30)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          ..color = stage.withValues(alpha: 0.16 + random.nextDouble() * 0.22),
       );
     }
 

@@ -40,6 +40,7 @@ class FakeMusicSdkPlatform implements MusicSdkPlatform {
   final bool failLink;
 
   String? lastSearchQuery;
+  final List<String> searchQueries = [];
   String? lastPlayableLinkTrackId;
 
   @override
@@ -51,6 +52,7 @@ class FakeMusicSdkPlatform implements MusicSdkPlatform {
     required String query,
   }) async {
     lastSearchQuery = query;
+    searchQueries.add(query);
     if (failSearch) {
       throw PlatformException(code: 'music_sdk_search_failed');
     }

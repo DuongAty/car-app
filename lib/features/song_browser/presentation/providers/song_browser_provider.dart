@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/local_storage_provider.dart';
 import '../../../playback/presentation/providers/now_playing_controller.dart';
 import '../../../queue/presentation/providers/queue_provider.dart';
 import '../../../source_selection/data/models/music_source.dart';
@@ -7,7 +10,20 @@ import '../../data/mock/song_browser_mock_data.dart';
 import '../../data/models/song_item.dart';
 import '../../data/music_sdk_song_repository.dart';
 import '../../data/recommendation_seed.dart';
+import '../../data/recommendations_cache_repository.dart';
+import '../../data/search_results_cache.dart';
 import 'music_sdk_repository_provider.dart';
+
+final recommendationsCacheProvider = Provider<RecommendationsCacheRepository>(
+  (ref) =>
+      RecommendationsCacheRepository(ref.watch(localStorageServiceProvider)),
+);
+
+/// Non-autoDispose so browse/search results survive the autoDispose browser
+/// controller being torn down and recreated on re-navigation.
+final searchResultsCacheProvider = Provider<SearchResultsCache>(
+  (ref) => SearchResultsCache(),
+);
 
 final songBrowserProvider = StateNotifierProvider.autoDispose
     .family<SongBrowserController, SongBrowserState, MusicSource>(
@@ -16,6 +32,8 @@ final songBrowserProvider = StateNotifierProvider.autoDispose
         ref.watch(musicSdkSongRepositoryProvider),
         ref.watch(queueProvider.notifier),
         ref.watch(nowPlayingProvider.notifier),
+        ref.watch(recommendationsCacheProvider),
+        ref.watch(searchResultsCacheProvider),
       ),
     );
 
@@ -67,13 +85,21 @@ class RecommendationsFailed extends RecommendationsState {
   const RecommendationsFailed();
 }
 
+enum BrowseTab { genres, artists }
+
+enum ArtistRegion { vietnam, international }
+
 class SongBrowserState {
   const SongBrowserState({
     required this.source,
     this.query = '',
-    this.selectedTopActionIndex = 0,
+    this.selectedTopActionIndex = SongBrowserMockData.searchTabIndex,
     this.selectedSuggestionIndex = 0,
     this.selectedResultIndex = 0,
+    this.selectedCategoryIndex = 0,
+    this.selectedArtistIndex = 0,
+    this.browseTab = BrowseTab.genres,
+    this.artistRegion = ArtistRegion.vietnam,
     this.recommendations = const RecommendationsLoading(),
     this.search = const SearchIdle(),
   });
@@ -83,6 +109,10 @@ class SongBrowserState {
   final int selectedTopActionIndex;
   final int selectedSuggestionIndex;
   final int selectedResultIndex;
+  final int selectedCategoryIndex;
+  final int selectedArtistIndex;
+  final BrowseTab browseTab;
+  final ArtistRegion artistRegion;
 
   final RecommendationsState recommendations;
   final SearchState search;
@@ -92,6 +122,10 @@ class SongBrowserState {
     int? selectedTopActionIndex,
     int? selectedSuggestionIndex,
     int? selectedResultIndex,
+    int? selectedCategoryIndex,
+    int? selectedArtistIndex,
+    BrowseTab? browseTab,
+    ArtistRegion? artistRegion,
     RecommendationsState? recommendations,
     SearchState? search,
   }) {
@@ -103,6 +137,11 @@ class SongBrowserState {
       selectedSuggestionIndex:
           selectedSuggestionIndex ?? this.selectedSuggestionIndex,
       selectedResultIndex: selectedResultIndex ?? this.selectedResultIndex,
+      selectedCategoryIndex:
+          selectedCategoryIndex ?? this.selectedCategoryIndex,
+      selectedArtistIndex: selectedArtistIndex ?? this.selectedArtistIndex,
+      browseTab: browseTab ?? this.browseTab,
+      artistRegion: artistRegion ?? this.artistRegion,
       recommendations: recommendations ?? this.recommendations,
       search: search ?? this.search,
     );
@@ -115,6 +154,8 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
     this._repository,
     this._queue,
     this._nowPlaying,
+    this._recommendationsCache,
+    this._searchCache,
   ) : super(SongBrowserState(source: source)) {
     _loadRecommendations();
   }
@@ -122,6 +163,13 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
   final MusicSdkSongRepository _repository;
   final QueueController _queue;
   final NowPlayingController _nowPlaying;
+  final RecommendationsCacheRepository _recommendationsCache;
+  final SearchResultsCache _searchCache;
+
+  // The last query key handed to _runSearch, used to drop duplicate requests
+  // (double-tap TÌM, re-pressing the same category) while one is in flight or
+  // already displayed. Reset on failure so a retry is allowed.
+  String? _lastRequestedQuery;
 
   // Requests are fire-and-forget against a real network call, so a second
   // search started before the first resolves must win — this guards against a
@@ -129,23 +177,40 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
   int _recommendationsRequestId = 0;
   int _searchRequestId = 0;
 
+  /// Stale-while-revalidate: paint the last cached list immediately (so the
+  /// column is not a spinner on every open), then refresh from the network in
+  /// the background and rewrite the cache. A network failure keeps the cached
+  /// list on screen; the error state is only shown when there was no cache.
   Future<void> _loadRecommendations() async {
     final requestId = ++_recommendationsRequestId;
+    final source = state.source.logoStyle;
+
+    final cached = await _recommendationsCache.load(source);
+    if (!mounted || requestId != _recommendationsRequestId) {
+      return;
+    }
+    final hasCache = cached != null && cached.isNotEmpty;
+    if (hasCache) {
+      state = state.copyWith(recommendations: RecommendationsSuccess(cached));
+    }
 
     try {
       final items = await _repository.search(
-        source: state.source.logoStyle,
-        query: recommendationSeedQuery(state.source.logoStyle),
+        source: source,
+        query: _normalizeQuery(recommendationSeedQuery(source)),
       );
       if (!mounted || requestId != _recommendationsRequestId) {
         return;
       }
       state = state.copyWith(recommendations: RecommendationsSuccess(items));
+      unawaited(_recommendationsCache.save(source, items));
     } catch (_) {
       if (!mounted || requestId != _recommendationsRequestId) {
         return;
       }
-      state = state.copyWith(recommendations: const RecommendationsFailed());
+      if (!hasCache) {
+        state = state.copyWith(recommendations: const RecommendationsFailed());
+      }
     }
   }
 
@@ -161,30 +226,14 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
     state = state.copyWith(selectedResultIndex: index);
   }
 
-  void addSongToQueue(SongItem song) {
-    _queue.add(song, state.source);
+  QueueAddResult addSongToQueue(SongItem song) {
+    return _queue.add(song, state.source);
   }
 
-  /// Handles one press on the on-screen keyboard, resolving the control keys
-  /// into query edits. TÌM submits the current query as a real search.
-  void pressKey(String key) {
-    switch (key) {
-      case SongBrowserMockData.keySearch:
-        submitSearch();
-      case SongBrowserMockData.keyNumbers:
-        return;
-      case SongBrowserMockData.keySpace:
-        _setQuery('${state.query} ');
-      case SongBrowserMockData.keyClear:
-        _setQuery('');
-      case SongBrowserMockData.keyBackspace:
-        if (state.query.isNotEmpty) {
-          _setQuery(state.query.substring(0, state.query.length - 1));
-        }
-      default:
-        _setQuery('${state.query}$key');
-    }
-  }
+  /// Updates the native system search field without starting a request. The
+  /// request is intentionally started only when the keyboard action is
+  /// submitted, so typing never fires an API call for every character.
+  void setQuery(String query) => _setQuery(query);
 
   void _setQuery(String query) {
     state = state.copyWith(
@@ -196,10 +245,70 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
     );
   }
 
+  void selectCategory(int index) {
+    state = state.copyWith(selectedCategoryIndex: index);
+  }
+
+  void selectBrowseTab(BrowseTab tab) {
+    state = state.copyWith(browseTab: tab);
+  }
+
+  void selectArtistRegion(ArtistRegion region) {
+    state = state.copyWith(artistRegion: region, selectedArtistIndex: 0);
+  }
+
+  void selectArtist(int index) {
+    state = state.copyWith(selectedArtistIndex: index);
+  }
+
+  Future<void> browseCategory(int index, String seedQuery) async {
+    state = state.copyWith(
+      query: seedQuery,
+      selectedCategoryIndex: index,
+      selectedResultIndex: 0,
+    );
+    await _runSearch(seedQuery);
+  }
+
+  Future<void> browseArtist(int index, String seedQuery) async {
+    state = state.copyWith(
+      query: seedQuery,
+      selectedArtistIndex: index,
+      selectedResultIndex: 0,
+    );
+    await _runSearch(seedQuery);
+  }
+
   Future<void> submitSearch() async {
     final query = state.query.trim();
     if (query.isEmpty) {
       state = state.copyWith(search: const SearchIdle());
+      return;
+    }
+    await _runSearch(query);
+  }
+
+  Future<void> _runSearch(String query) async {
+    final source = state.source.logoStyle;
+    final normalized = _normalizeQuery(query);
+    final cacheKey = '${source.name}|$normalized';
+
+    // Dedupe: the same query is already loading or already on screen — don't
+    // fire a duplicate network request (double-tap TÌM, re-press same tile).
+    if (_lastRequestedQuery == cacheKey &&
+        (state.search is SearchLoading || state.search is SearchSuccess)) {
+      return;
+    }
+    _lastRequestedQuery = cacheKey;
+
+    // Cache hit: show instantly, no network. Covers re-pressing a category and
+    // re-submitting a query, including after leaving and returning to the page.
+    final cached = _searchCache.get(cacheKey);
+    if (cached != null) {
+      state = state.copyWith(
+        search: SearchSuccess(cached),
+        selectedResultIndex: 0,
+      );
       return;
     }
 
@@ -211,17 +320,20 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
 
     try {
       final results = await _repository.search(
-        source: state.source.logoStyle,
-        query: query,
+        source: source,
+        query: normalized,
       );
       if (!mounted || requestId != _searchRequestId) {
         return;
       }
+      _searchCache.put(cacheKey, results);
       state = state.copyWith(search: SearchSuccess(results));
     } catch (_) {
       if (!mounted || requestId != _searchRequestId) {
         return;
       }
+      // Allow a retry of the same query after a failure.
+      _lastRequestedQuery = null;
       state = state.copyWith(search: const SearchFailed());
     }
   }
@@ -232,3 +344,11 @@ class SongBrowserController extends StateNotifier<SongBrowserState> {
     return _nowPlaying.play(song, state.source.logoStyle);
   }
 }
+
+/// Collapses surrounding and repeated whitespace.
+///
+/// Kept after the karaoke mode was removed because the search cache key is
+/// built from the result — without it, "abc " and "abc" become two cache
+/// entries and two network round trips for the same search.
+String _normalizeQuery(String query) =>
+    query.replaceAll(RegExp(r'\s+'), ' ').trim();

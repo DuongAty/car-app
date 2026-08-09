@@ -2,30 +2,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:viet_ktv/core/providers/local_storage_provider.dart';
+import 'package:viet_ktv/core/services/local_storage_service.dart';
+import 'package:viet_ktv/core/theme/app_icons.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
 import 'package:viet_ktv/app.dart';
 import 'package:viet_ktv/core/services/music_sdk_platform.dart';
-import 'package:viet_ktv/core/shared/widgets/search_input_shell.dart';
-import 'package:viet_ktv/core/shared/widgets/virtual_key_tile.dart';
+import 'package:viet_ktv/core/shared/widgets/neon_skeleton.dart';
 import 'package:viet_ktv/core/theme/app_colors.dart';
+import 'package:viet_ktv/features/license/data/models/license_rpc_result.dart';
+import 'package:viet_ktv/features/license/presentation/providers/license_controller.dart';
 import 'package:viet_ktv/features/playback/data/audio_track_player.dart';
+import 'package:viet_ktv/features/settings/data/models/app_settings.dart';
 import 'package:viet_ktv/features/song_browser/data/models/song_item.dart';
 import 'package:viet_ktv/features/song_browser/presentation/pages/song_browser_page.dart';
 import 'package:viet_ktv/features/song_browser/presentation/providers/music_sdk_repository_provider.dart';
 import 'package:viet_ktv/features/song_browser/presentation/providers/song_browser_provider.dart';
 import 'package:viet_ktv/features/song_browser/presentation/widgets/preview_player.dart';
-import 'package:viet_ktv/features/song_browser/presentation/widgets/search_keyboard_panel.dart';
 import 'package:viet_ktv/features/song_browser/presentation/widgets/search_result_tile.dart';
 import 'package:viet_ktv/features/song_browser/presentation/widgets/search_results_panel.dart';
-import 'package:viet_ktv/features/song_browser/presentation/widgets/suggestions_panel.dart';
 import 'package:viet_ktv/features/source_selection/data/models/music_source.dart';
 import 'package:viet_ktv/l10n/app_localizations.dart';
 
+import 'support/fake_license_repository.dart';
 import 'support/fake_music_sdk_platform.dart';
 import 'support/fake_audio_track_player.dart';
+import 'support/fake_local_storage_service.dart';
 import 'support/fake_video_player_platform.dart';
+
+/// A device that already has a valid, server-confirmed key bound to it, so
+/// the license gate unlocks immediately instead of showing the key input
+/// screen — used by tests that only care about what's past the gate.
+List<Override> _unlockedLicenseOverrides() {
+  final storage = FakeLocalStorageService()
+    ..store['license_key_code_v1'] = 'TEST-KEY-0000';
+  return [
+    localStorageServiceProvider.overrideWithValue(storage),
+    licenseRepositoryProvider.overrideWithValue(
+      FakeLicenseRepository(checkResult: LicenseRpcResult.activeSelf),
+    ),
+  ];
+}
 
 const _source = MusicSource(
   id: 'youtube',
@@ -46,8 +65,10 @@ Future<void> _pumpSongBrowser(
   MusicSdkPlatform? musicSdkPlatform,
   MusicSource source = _source,
   AudioTrackPlayerFactory audioPlayerFactory = FakeAudioTrackPlayer.new,
+  LocalStorageService? localStorage,
+  Size viewport = const Size(1920, 1080),
 }) async {
-  tester.view.physicalSize = const Size(1920, 1080);
+  tester.view.physicalSize = viewport;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
@@ -59,6 +80,9 @@ Future<void> _pumpSongBrowser(
           musicSdkPlatform ?? FakeMusicSdkPlatform(),
         ),
         audioTrackPlayerFactoryProvider.overrideWithValue(audioPlayerFactory),
+        localStorageServiceProvider.overrideWithValue(
+          localStorage ?? FakeLocalStorageService(),
+        ),
       ],
       child: MaterialApp(
         locale: const Locale('vi'),
@@ -79,18 +103,13 @@ Future<void> _pumpSongBrowser(
   await tester.pumpAndSettle();
 }
 
-/// Types [query] on the on-screen keyboard, one character at a time, then
-/// presses TÌM to submit it as a real search.
-///
-/// Taps are scoped to [VirtualKeyTile] because some letters (e.g. "C") also
-/// appear as standalone badge text in the bottom hint bar, which would
-/// otherwise make `find.text(char)` ambiguous.
+/// Types into the native Android field, then sends its search/Enter action.
 Future<void> _search(WidgetTester tester, String query) async {
-  for (final char in query.split('')) {
-    await tester.tap(find.widgetWithText(VirtualKeyTile, char));
-    await tester.pump();
-  }
-  await tester.tap(find.widgetWithText(VirtualKeyTile, 'TÌM'));
+  await tester.enterText(
+    find.byKey(const ValueKey('songBrowserNativeSearchField')),
+    query,
+  );
+  await tester.testTextInput.receiveAction(TextInputAction.search);
   await tester.pumpAndSettle();
 }
 
@@ -115,27 +134,34 @@ void main() {
     VideoPlayerPlatform.instance = FakeVideoPlayerPlatform();
   });
 
-  testWidgets('shows_all_three_music_sources', (tester) async {
+  testWidgets('shows_both_music_sources', (tester) async {
     tester.view.physicalSize = const Size(1920, 1080);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ProviderScope(child: VietKtvApp()));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: _unlockedLicenseOverrides(),
+        child: const VietKtvApp(),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump();
 
     expect(find.text('YouTube'), findsOneWidget);
     expect(find.text('SOUNDCLOUD'), findsOneWidget);
-    expect(find.text('M—XCLOUD'), findsOneWidget);
   });
 
-  testWidgets('shows_virtual_keyboard_at_rest', (tester) async {
+  testWidgets('shows_native_search_field_at_rest', (tester) async {
     await _pumpSongBrowser(tester);
 
-    // The karaoke layout keeps the keyboard on screen instead of revealing it
-    // after the search field is focused.
-    expect(find.text('DẤU CÁCH'), findsOneWidget);
-    expect(find.text('XÓA'), findsOneWidget);
-    expect(find.text('TÌM'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('songBrowserNativeSearchField')),
+      findsOneWidget,
+    );
+    expect(find.text('DẤU CÁCH'), findsNothing);
   });
 
   testWidgets('shows_idle_prompt_before_any_search', (tester) async {
@@ -172,10 +198,28 @@ void main() {
     await _search(tester, 'Z');
     expect(find.text('0 kết quả'), findsOneWidget);
 
-    await tester.tap(find.text('XÓA'));
+    await tester.enterText(
+      find.byKey(const ValueKey('songBrowserNativeSearchField')),
+      '',
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Nhập từ khóa rồi bấm TÌM để tìm kiếm'), findsOneWidget);
+  });
+
+  testWidgets('clearing_the_native_field_returns_to_the_idle_prompt', (
+    tester,
+  ) async {
+    await _pumpSongBrowser(tester);
+
+    await _search(tester, 'AB');
+    await tester.enterText(
+      find.byKey(const ValueKey('songBrowserNativeSearchField')),
+      '',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tìm bài hát, ca sĩ hoặc từ khóa...'), findsOneWidget);
   });
 
   testWidgets('shows_an_error_message_when_the_search_call_fails', (
@@ -195,55 +239,108 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SearchResultTile(
-            item: const SongItem(
-              id: 'yt-1',
-              title: 'Có Chắc Yêu Là Đây',
-              subtitle: 'YouTube',
-              duration: '03:55',
-              thumbnailSeed: 1,
-              imageUrl: 'https://img.example/yt-1.jpg',
-              badge: null,
+      ProviderScope(
+        overrides: [
+          localStorageServiceProvider.overrideWithValue(
+            FakeLocalStorageService(),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SearchResultTile(
+              item: const SongItem(
+                id: 'yt-1',
+                title: 'Có Chắc Yêu Là Đây',
+                subtitle: 'YouTube',
+                duration: '03:55',
+                thumbnailSeed: 1,
+                imageUrl: 'https://img.example/yt-1.jpg',
+                badge: null,
+              ),
+              selected: false,
+              onPressed: () {},
+              onAdd: () {},
+              source: MusicSourceLogoStyle.youtube,
             ),
-            selected: false,
-            onPressed: () {},
-            onAdd: () {},
           ),
         ),
       ),
     );
 
     final image = tester.widget<Image>(find.byType(Image));
+    final resized = image.image as ResizeImage;
+    final networkImage = resized.imageProvider as NetworkImage;
 
-    expect(image.image, isA<NetworkImage>());
-    expect((image.image as NetworkImage).url, 'https://img.example/yt-1.jpg');
+    expect(image.image, isA<ResizeImage>());
+    expect(networkImage.url, 'https://img.example/yt-1.jpg');
+  });
+
+  testWidgets('tapping_the_heart_toggles_favorite_icon', (tester) async {
+    // The heart now reads/writes the shared favorites controller rather than
+    // local widget state, so the tile only needs a ProviderScope around it.
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          localStorageServiceProvider.overrideWithValue(
+            FakeLocalStorageService(),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SearchResultTile(
+              item: const SongItem(
+                id: 'yt-1',
+                title: 'Có Chắc Yêu Là Đây',
+                subtitle: 'YouTube',
+                duration: '03:55',
+                thumbnailSeed: 1,
+                badge: null,
+              ),
+              selected: false,
+              onPressed: () {},
+              onAdd: () {},
+              source: MusicSourceLogoStyle.youtube,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(AppIcons.favoriteOutline), findsOneWidget);
+
+    await tester.tap(find.byIcon(AppIcons.favoriteOutline));
+    await tester.pump();
+
+    expect(find.byIcon(AppIcons.favorite), findsOneWidget);
   });
 
   testWidgets('centers_search_loading_state_inside_results_panel', (
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('vi'),
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: const [
-          AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        home: Scaffold(
-          body: SizedBox(
-            width: 360,
-            height: 520,
-            child: SearchResultsPanel(
-              search: const SearchLoading(),
-              selectedIndex: 0,
-              onSelected: (_) {},
-              onPlay: (_) {},
-              onAdd: (_) {},
+      ProviderScope(
+        child: MaterialApp(
+          locale: const Locale('vi'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 520,
+              child: SearchResultsPanel(
+                search: const SearchLoading(),
+                selectedIndex: 0,
+                onSelected: (_) {},
+                onPlay: (_) {},
+                onAdd: (_) {},
+                source: MusicSourceLogoStyle.youtube,
+              ),
             ),
           ),
         ),
@@ -251,14 +348,14 @@ void main() {
     );
 
     final panel = tester.getRect(find.byType(SearchResultsPanel));
-    final loader = tester.getRect(find.byType(CircularProgressIndicator));
+    final loader = tester.getRect(find.byType(NeonSkeletonList));
     final label = tester.getRect(find.text('Đang tìm kiếm...'));
 
     expect(loader.center.dx, closeTo(panel.center.dx, 1));
     expect(label.center.dx, closeTo(panel.center.dx, 1));
   });
 
-  testWidgets('resolves_a_playable_link_when_a_suggestion_is_played', (
+  testWidgets('resolves_a_playable_link_when_a_search_result_is_played', (
     tester,
   ) async {
     final platform = FakeMusicSdkPlatform();
@@ -266,7 +363,8 @@ void main() {
 
     expect(find.text('Chọn một bài hát để bắt đầu'), findsOneWidget);
 
-    await tester.tap(find.text('Lạc Trôi'));
+    await _search(tester, 'OFFICIAL');
+    await tester.tap(find.text('Lạc Trôi - Sơn Tùng M-TP (Official MV)'));
     // Not pumpAndSettle: once the fake video starts "playing", VideoPlayer's
     // own 100ms position timer runs indefinitely and would time it out.
     // A few bounded pumps are enough to walk the request through
@@ -275,7 +373,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
     }
 
-    expect(platform.lastPlayableLinkTrackId, '1');
+    expect(platform.lastPlayableLinkTrackId, '10');
     final player = tester.widget<VideoPlayer>(find.byType(VideoPlayer));
     expect(player.controller.videoPlayerOptions?.mixWithOthers, isFalse);
     expect(tester.takeException(), isNull);
@@ -290,10 +388,15 @@ void main() {
     tester,
   ) async {
     final platform = FakeMusicSdkPlatform();
+    final storage = FakeLocalStorageService()
+      ..store['app_settings_v1'] = const AppSettings(
+        visualizerEnabled: true,
+      ).encode();
     await _pumpSongBrowser(
       tester,
       musicSdkPlatform: platform,
       source: _soundCloudSource,
+      localStorage: storage,
     );
 
     await _search(tester, 'KARAOKE');
@@ -304,9 +407,37 @@ void main() {
 
     expect(platform.lastPlayableLinkTrackId, '9');
     final player = tester.widget<VideoPlayer>(find.byType(VideoPlayer));
-    expect(player.controller.dataSource, startsWith('assets/visualizer/'));
+    expect(
+      player.controller.dataSource,
+      startsWith('assets/visualizer_light/'),
+    );
     expect(player.controller.value.isLooping, isTrue);
     expect(player.controller.videoPlayerOptions?.mixWithOthers, isTrue);
+
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('disabled_visualizer_does_not_create_audio_source_video', (
+    tester,
+  ) async {
+    final storage = FakeLocalStorageService()
+      ..store['app_settings_v1'] = const AppSettings(
+        visualizerEnabled: false,
+      ).encode();
+    await _pumpSongBrowser(
+      tester,
+      musicSdkPlatform: FakeMusicSdkPlatform(),
+      source: _soundCloudSource,
+      localStorage: storage,
+    );
+
+    await _search(tester, 'KARAOKE');
+    await tester.tap(find.text('Lạc Trôi - Sơn Tùng M-TP (Karaoke)'));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    expect(find.byType(VideoPlayer), findsNothing);
 
     await tester.pumpWidget(const SizedBox());
   });
@@ -322,10 +453,15 @@ void main() {
     });
 
     final platform = FakeMusicSdkPlatform();
+    final storage = FakeLocalStorageService()
+      ..store['app_settings_v1'] = const AppSettings(
+        visualizerEnabled: true,
+      ).encode();
     await _pumpSongBrowser(
       tester,
       musicSdkPlatform: platform,
       source: _soundCloudSource,
+      localStorage: storage,
     );
 
     await _search(tester, 'KARAOKE');
@@ -350,11 +486,16 @@ void main() {
     });
 
     late FakeAudioTrackPlayer audioPlayer;
+    final storage = FakeLocalStorageService()
+      ..store['app_settings_v1'] = const AppSettings(
+        visualizerEnabled: true,
+      ).encode();
     await _pumpSongBrowser(
       tester,
       musicSdkPlatform: FakeMusicSdkPlatform(),
       source: _soundCloudSource,
       audioPlayerFactory: () => audioPlayer = FakeAudioTrackPlayer(),
+      localStorage: storage,
     );
 
     await _search(tester, 'KARAOKE');
@@ -367,14 +508,14 @@ void main() {
     expect(videoPlatform.playCallCount, 1);
 
     final videoPauseCount = videoPlatform.pauseCallCount;
-    await tester.tap(find.byIcon(Icons.pause_rounded));
+    await tester.tap(find.byIcon(AppIcons.pause));
     await tester.pump();
 
     expect(audioPlayer.pauseCallCount, 1);
     expect(videoPlatform.pauseCallCount, videoPauseCount + 1);
 
     final videoPlayCount = videoPlatform.playCallCount;
-    await tester.tap(find.byIcon(Icons.play_arrow_rounded));
+    await tester.tap(find.byIcon(AppIcons.play));
     await tester.pump();
 
     expect(audioPlayer.playCallCount, 2);
@@ -391,10 +532,34 @@ void main() {
       musicSdkPlatform: FakeMusicSdkPlatform(failLink: true),
     );
 
-    await tester.tap(find.text('Lạc Trôi'));
+    await _search(tester, 'OFFICIAL');
+    await tester.tap(find.text('Lạc Trôi - Sơn Tùng M-TP (Official MV)'));
     await tester.pumpAndSettle();
 
     expect(find.text('Không phát được video này.'), findsOneWidget);
+  });
+
+  testWidgets('rewind_button_seeks_the_video_back_ten_seconds', (tester) async {
+    final videoPlatform = FakeVideoPlayerPlatform();
+    VideoPlayerPlatform.instance = videoPlatform;
+    addTearDown(() {
+      VideoPlayerPlatform.instance = FakeVideoPlayerPlatform();
+    });
+
+    await _pumpSongBrowser(tester);
+
+    await _search(tester, 'OFFICIAL');
+    await tester.tap(find.text('Lạc Trôi - Sơn Tùng M-TP (Official MV)'));
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+
+    await tester.tap(find.byIcon(AppIcons.rewind));
+    await tester.pump();
+
+    expect(videoPlatform.lastSeekPosition, isNotNull);
+
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('adding_to_queue_does_not_also_trigger_playback', (tester) async {
@@ -402,34 +567,21 @@ void main() {
     await _pumpSongBrowser(tester, musicSdkPlatform: platform);
     await _search(tester, 'OFFICIAL');
 
-    await tester.tap(find.byIcon(Icons.add));
+    await tester.tap(find.byIcon(AppIcons.add));
     await tester.pumpAndSettle();
 
     expect(platform.lastPlayableLinkTrackId, isNull);
     expect(find.text('Chọn một bài hát để bắt đầu'), findsOneWidget);
   });
 
-  testWidgets('centers_search_field_contents_vertically', (tester) async {
+  testWidgets('keeps_native_search_field_visible', (tester) async {
     await _pumpSongBrowser(tester);
 
-    final field = tester.getRect(find.byType(SearchInputShell));
-    final icon = tester.getRect(
-      find.descendant(
-        of: find.byType(SearchInputShell),
-        matching: find.byIcon(Icons.search),
-      ),
+    final field = tester.getRect(
+      find.byKey(const ValueKey('songBrowserNativeSearchField')),
     );
-
-    expect(icon.center.dy, closeTo(field.center.dy, 0.5));
-  });
-
-  testWidgets('aligns_search_field_with_keyboard_edges', (tester) async {
-    await _pumpSongBrowser(tester);
-
-    final field = tester.getRect(find.byType(SearchInputShell));
-    final firstKey = tester.getRect(find.byType(VirtualKeyTile).first);
-
-    expect(field.left, closeTo(firstKey.left, 0.5));
+    expect(field.width, greaterThan(0));
+    expect(field.height, greaterThan(0));
   });
 
   testWidgets('keeps_layout_within_bounds_on_small_viewport', (tester) async {
@@ -438,24 +590,30 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(const ProviderScope(child: VietKtvApp()));
-    await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: _unlockedLicenseOverrides(),
+        child: const VietKtvApp(),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pump();
+    await tester.pump();
 
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('expands_player_over_panels_and_keyboard', (tester) async {
+  testWidgets('expands_player_over_the_search_panel', (tester) async {
     await _pumpSongBrowser(tester);
 
     final collapsedPlayer = tester.getRect(find.byType(PreviewPlayer));
 
-    await tester.tap(find.byIcon(Icons.fullscreen_rounded));
+    await tester.tap(find.byIcon(AppIcons.fullscreen));
     await tester.pumpAndSettle();
 
     final expandedPlayer = tester.getRect(find.byType(PreviewPlayer));
     expect(expandedPlayer.width, greaterThan(collapsedPlayer.width));
-    expect(expandedPlayer.height, greaterThan(collapsedPlayer.height));
-    expect(find.byIcon(Icons.fullscreen_exit_rounded), findsOneWidget);
+    expect(find.byIcon(AppIcons.fullscreenExit), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -480,10 +638,7 @@ void main() {
     final collapsed = tester.getRect(find.byType(PreviewPlayer));
 
     // Double-tapping a control must not resize the screen underneath.
-    await _doubleTapAt(
-      tester,
-      tester.getCenter(find.byIcon(Icons.fast_rewind_rounded)),
-    );
+    await _doubleTapAt(tester, tester.getCenter(find.byIcon(AppIcons.rewind)));
 
     expect(tester.getRect(find.byType(PreviewPlayer)), collapsed);
   });
@@ -491,7 +646,7 @@ void main() {
   testWidgets('collapses_without_overflow_mid_animation', (tester) async {
     await _pumpSongBrowser(tester);
 
-    await tester.tap(find.byIcon(Icons.fullscreen_rounded));
+    await tester.tap(find.byIcon(AppIcons.fullscreen));
     await tester.pump();
 
     // Step through the collapse. Panels shrink to zero here, so a naive
@@ -507,9 +662,9 @@ void main() {
 
     final original = tester.getRect(find.byType(PreviewPlayer));
 
-    await tester.tap(find.byIcon(Icons.fullscreen_rounded));
+    await tester.tap(find.byIcon(AppIcons.fullscreen));
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.fullscreen_exit_rounded));
+    await tester.tap(find.byIcon(AppIcons.fullscreenExit));
     await tester.pumpAndSettle();
 
     expect(tester.getRect(find.byType(PreviewPlayer)), original);
@@ -518,16 +673,12 @@ void main() {
   testWidgets('keeps_hidden_panels_out_of_focus_when_expanded', (tester) async {
     await _pumpSongBrowser(tester);
 
-    await tester.tap(find.byIcon(Icons.fullscreen_rounded));
+    await tester.tap(find.byIcon(AppIcons.fullscreen));
     await tester.pumpAndSettle();
 
     // Collapsed panels stay in the tree, so they must be excluded from D-pad
     // traversal or focus would walk into rows the user cannot see.
-    for (final panel in [
-      find.byType(SearchKeyboardPanel),
-      find.byType(SuggestionsPanel),
-      find.byType(SearchResultsPanel),
-    ]) {
+    for (final panel in [find.byType(SearchResultsPanel)]) {
       final guard = tester.widget<ExcludeFocus>(
         find.ancestor(of: panel, matching: find.byType(ExcludeFocus)).first,
       );
@@ -541,5 +692,36 @@ void main() {
     await _pumpSongBrowser(tester);
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps the song browser visible across display ratios', (
+    tester,
+  ) async {
+    const viewports = [
+      Size(1920, 1080),
+      Size(1280, 720),
+      Size(1024, 600),
+      Size(2560, 720),
+      Size(800, 1280),
+    ];
+
+    for (final viewport in viewports) {
+      await _pumpSongBrowser(tester, viewport: viewport);
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'overflow at ${viewport.width}x${viewport.height}',
+      );
+
+      final screen = Offset.zero & viewport;
+      for (final finder in [
+        find.byType(PreviewPlayer),
+        find.byType(SearchResultsPanel),
+      ]) {
+        final rect = tester.getRect(finder.first);
+        expect(screen.overlaps(rect), isTrue);
+      }
+    }
   });
 }

@@ -84,7 +84,7 @@ class LiquidGlass extends StatelessWidget {
       if (lifted)
         BoxShadow(
           color: Colors.black.withValues(alpha: 0.38),
-          blurRadius: 22,
+          blurRadius: 12,
           offset: const Offset(0, 8),
         ),
       ...?boxShadow,
@@ -113,15 +113,21 @@ class LiquidGlass extends StatelessWidget {
           fit: StackFit.passthrough,
           children: [
             Padding(padding: padding, child: child),
-            // Painted last so the rim stays crisp over the content.
+            // Painted last so the rim stays crisp over the content. Isolated on
+            // its own layer so the shader/blur edge rasterizes once and is
+            // reused instead of being redrawn every time the child content (or
+            // a parent focus animation) repaints — the edge itself only changes
+            // when the surface's own paint inputs change.
             Positioned.fill(
               child: IgnorePointer(
-                child: CustomPaint(
-                  painter: _LiquidEdgePainter(
-                    shape: shape,
-                    rimColor: rimColor ?? Colors.white,
-                    rimWidth: rimWidth,
-                    detail: detail,
+                child: RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _LiquidEdgePainter(
+                      shape: shape,
+                      rimColor: rimColor ?? Colors.white,
+                      rimWidth: rimWidth,
+                      detail: detail,
+                    ),
                   ),
                 ),
               ),
@@ -165,7 +171,7 @@ class _LiquidEdgePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 10
           ..color = rimColor.withValues(alpha: 0.07)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
       );
 
       // Shadow inside the bottom edge reads as slab thickness.
@@ -177,7 +183,7 @@ class _LiquidEdgePainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 5
           ..color = Colors.black.withValues(alpha: 0.34)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1),
       );
       canvas.restore();
     }

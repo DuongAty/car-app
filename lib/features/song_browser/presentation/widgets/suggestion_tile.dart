@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/shared/widgets/favorite_toggle.dart';
 import '../../../../core/shared/widgets/focusable_tile.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_glows.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../source_selection/data/models/music_source.dart';
 import '../../data/models/song_item.dart';
 import 'song_thumbnail.dart';
 
@@ -16,12 +18,14 @@ class SuggestionTile extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onPressed,
+    required this.source,
     this.onFocused,
   });
 
   final SongItem item;
   final bool selected;
   final VoidCallback onPressed;
+  final MusicSourceLogoStyle source;
   final VoidCallback? onFocused;
 
   @override
@@ -38,8 +42,10 @@ class SuggestionTile extends StatelessWidget {
       builder: (context, focused) {
         final active = selected || focused;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+        // Plain Container, not AnimatedContainer: instant focus highlight
+        // avoids tweening a blurred BoxShadow on every D-pad move. See
+        // SearchResultTile for the rationale.
+        return Container(
           height: AppLayout.browserSuggestionTileHeight,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xs,
@@ -86,6 +92,13 @@ class SuggestionTile extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              FavoriteToggle(
+                song: item,
+                source: source,
+                size: 36,
+                iconSize: 18,
               ),
               const SizedBox(width: AppSpacing.xs),
               Text(item.duration, style: textTheme.bodySmall),

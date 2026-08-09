@@ -82,13 +82,13 @@ void main() {
       final repository = MusicSdkSongRepository(platform);
 
       final link = await repository.getPlayableLink(
-        source: MusicSourceLogoStyle.mixcloud,
-        trackId: 'mix-42',
+        source: MusicSourceLogoStyle.soundcloud,
+        trackId: 'sc-42',
       );
 
-      expect(link, 'https://media.example/mix-42');
-      expect(platform.lastPlayableLinkSource, MusicSourceLogoStyle.mixcloud);
-      expect(platform.lastPlayableLinkTrackId, 'mix-42');
+      expect(link, 'https://media.example/sc-42');
+      expect(platform.lastPlayableLinkSource, MusicSourceLogoStyle.soundcloud);
+      expect(platform.lastPlayableLinkTrackId, 'sc-42');
     });
   });
 }

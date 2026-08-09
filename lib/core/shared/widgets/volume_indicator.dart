@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/app_colors.dart';
+import '../../theme/app_icons.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 
@@ -105,12 +106,12 @@ class VolumeIndicator extends StatelessWidget {
 
   IconData _iconFor(double ratio) {
     if (ratio <= 0) {
-      return Icons.volume_off_outlined;
+      return AppIcons.volumeOff;
     }
     if (ratio < 0.5) {
-      return Icons.volume_down_outlined;
+      return AppIcons.volumeDown;
     }
-    return Icons.volume_up_outlined;
+    return AppIcons.volumeUp;
   }
 }
 

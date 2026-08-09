@@ -1,3 +1,4 @@
+import '../../../core/services/music_sdk_bootstrap.dart';
 import '../../../core/services/music_sdk_platform.dart';
 import '../../source_selection/data/models/music_source.dart';
 import 'models/song_item.dart';
@@ -15,6 +16,10 @@ class MusicSdkSongRepository {
     required MusicSourceLogoStyle source,
     required String query,
   }) async {
+    // Gate on the deferred startup init so the first search cannot race an
+    // unfinished native SDK handshake (returns instantly once initialized, or
+    // immediately in tests where no license key is defined).
+    await ensureMusicSdkInitialized();
     final tracks = await _platform.search(source: source, query: query);
 
     return tracks
@@ -35,7 +40,8 @@ class MusicSdkSongRepository {
   Future<String> getPlayableLink({
     required MusicSourceLogoStyle source,
     required String trackId,
-  }) {
+  }) async {
+    await ensureMusicSdkInitialized();
     return _platform.getPlayableLink(source: source, trackId: trackId);
   }
 

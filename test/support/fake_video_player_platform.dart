@@ -16,6 +16,7 @@ class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
   int? latestPlayerId;
   int playCallCount = 0;
   int pauseCallCount = 0;
+  Duration? lastSeekPosition;
 
   @override
   Future<void> init() async {}
@@ -101,7 +102,9 @@ class FakeVideoPlayerPlatform extends VideoPlayerPlatform {
   Future<void> setPlaybackSpeed(int playerId, double speed) async {}
 
   @override
-  Future<void> seekTo(int playerId, Duration position) async {}
+  Future<void> seekTo(int playerId, Duration position) async {
+    lastSeekPosition = position;
+  }
 
   @override
   Future<Duration> getPosition(int playerId) async => Duration.zero;

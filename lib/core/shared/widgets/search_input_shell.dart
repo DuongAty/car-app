@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import '../../theme/app_icons.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
 import 'liquid_glass.dart';
@@ -14,14 +16,22 @@ class SearchInputShell extends StatelessWidget {
     required this.placeholder,
     required this.onMicTap,
     required this.onTap,
+    required this.voiceSearchTooltip,
+    required this.stopVoiceSearchTooltip,
     this.isFocused = false,
+    this.isListening = false,
+    this.hasVoiceSearchError = false,
   });
 
   final String value;
   final String placeholder;
   final VoidCallback onMicTap;
   final VoidCallback onTap;
+  final String voiceSearchTooltip;
+  final String stopVoiceSearchTooltip;
   final bool isFocused;
+  final bool isListening;
+  final bool hasVoiceSearchError;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +53,7 @@ class SearchInputShell extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.search, color: AppColors.textSecondary, size: 26),
+            Icon(AppIcons.search, color: AppColors.textSecondary, size: 26),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
@@ -56,20 +66,55 @@ class SearchInputShell extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.xs),
-            InkWell(
-              onTap: onMicTap,
-              customBorder: const CircleBorder(),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.white10),
-                ),
-                child: const Icon(
-                  Icons.mic_none_rounded,
-                  color: AppColors.textSecondary,
-                  size: 24,
+            Tooltip(
+              message: isListening
+                  ? stopVoiceSearchTooltip
+                  : voiceSearchTooltip,
+              child: InkWell(
+                onTap: onMicTap,
+                customBorder: const CircleBorder(),
+                child: AnimatedContainer(
+                  duration: AppMotion.control,
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isListening
+                        ? AppColors.green
+                        : hasVoiceSearchError
+                        ? AppColors.red.withValues(alpha: 0.85)
+                        : null,
+                    border: Border.all(
+                      color: isListening
+                          ? AppColors.green
+                          : hasVoiceSearchError
+                          ? AppColors.red
+                          : AppColors.white10,
+                      width: isListening || hasVoiceSearchError ? 2 : 1,
+                    ),
+                    boxShadow: isListening || hasVoiceSearchError
+                        ? [
+                            BoxShadow(
+                              color:
+                                  (isListening
+                                          ? AppColors.green
+                                          : AppColors.red)
+                                      .withValues(alpha: 0.72),
+                              blurRadius: 18,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Icon(
+                    hasVoiceSearchError
+                        ? AppIcons.microphoneOff
+                        : AppIcons.microphone,
+                    color: isListening || hasVoiceSearchError
+                        ? AppColors.background
+                        : AppColors.textSecondary,
+                    size: 24,
+                  ),
                 ),
               ),
             ),

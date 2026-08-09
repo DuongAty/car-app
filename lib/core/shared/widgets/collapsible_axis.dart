@@ -16,7 +16,10 @@ class CollapsibleAxis extends StatelessWidget {
     required this.collapsed,
     required this.child,
     this.alignment = Alignment.topLeft,
-    this.duration = const Duration(milliseconds: 260),
+    // Instant by default: on the 2GB/1-core box the expand/collapse slide was
+    // a per-frame relayout of whole panels, and the product direction is no
+    // theater-mode transition. Pass a non-zero duration to opt back in.
+    this.duration = Duration.zero,
   });
 
   final Axis axis;

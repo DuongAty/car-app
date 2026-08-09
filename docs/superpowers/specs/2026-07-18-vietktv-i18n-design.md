@@ -1,7 +1,7 @@
-# VietKTV I18n Design
+# car-app I18n Design
 
 ## Summary
-Add real Flutter internationalization to VietKTV using `gen-l10n`, with Vietnamese as the default locale and English as the secondary locale.
+Add real Flutter internationalization to car-app using `gen-l10n`, with Vietnamese as the default locale and English as the secondary locale.
 
 The existing `VI/EN` toggle must change the app locale globally instead of only toggling local UI state. New UI copy must be added through the localization files rather than hardcoded directly in widgets or mock data.
 

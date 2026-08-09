@@ -21,10 +21,24 @@ class SourceBadge extends StatelessWidget {
         color: AppColors.orange,
         label: 'SoundCloud',
       ),
-      MusicSourceLogoStyle.mixcloud => const _PillBadge(
-        color: AppColors.purple,
-        label: 'Mixcloud',
-      ),
+    };
+  }
+}
+
+/// Mark-only indicator for the top bar: just the platform's icon, no
+/// wordmark or pill background. Unlike [SourceBadge], this must never be
+/// reused at the badge call sites (favorites/history rows, preview player,
+/// queue rows) — those keep the full wordmark chip.
+class SourceMark extends StatelessWidget {
+  const SourceMark({super.key, required this.source});
+
+  final MusicSourceLogoStyle source;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (source) {
+      MusicSourceLogoStyle.youtube => const YoutubeMark(height: 32),
+      MusicSourceLogoStyle.soundcloud => const SoundCloudMark(height: 32),
     };
   }
 }

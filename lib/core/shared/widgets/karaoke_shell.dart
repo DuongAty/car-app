@@ -8,9 +8,9 @@ import 'particle_wave.dart';
 
 /// Page frame for the karaoke screens.
 ///
-/// The screens are authored against a fixed 1920x1080 canvas and scaled to fit
-/// the device, which keeps the dense TV layout pixel-consistent on every
-/// Android screen size and rules out render overflow.
+/// The shell fills the available Android display and applies bounded responsive
+/// padding so the same karaoke UI can run on TV boxes, car head units, and
+/// smaller Android fallback screens without relying on one fixed canvas.
 class KaraokeShell extends StatelessWidget {
   const KaraokeShell({
     super.key,
@@ -18,6 +18,7 @@ class KaraokeShell extends StatelessWidget {
     required this.body,
     required this.bottomBar,
     this.showEdgeParticles = false,
+    this.chromeVisible = true,
   });
 
   final Widget topBar;
@@ -27,6 +28,10 @@ class KaraokeShell extends StatelessWidget {
   /// Red/purple particle streams along the lower corners, used on the source
   /// picker where the background is part of the composition.
   final bool showEdgeParticles;
+
+  /// When false the top and bottom bars are not built at all, giving the body
+  /// the whole shell. Used by the player's fullscreen mode.
+  final bool chromeVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -46,72 +51,146 @@ class KaraokeShell extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.contain,
-              child: SizedBox(
-                width: AppLayout.designWidth,
-                height: AppLayout.designHeight,
-                child: Stack(
-                  children: [
-                    // Soft color pools so the glass panels have something to
-                    // pick up instead of reading as flat grey.
-                    const _AuroraBlob(
-                      alignment: Alignment(-0.85, 0.55),
-                      color: AppColors.red,
-                      size: 900,
-                      opacity: 0.16,
-                    ),
-                    const _AuroraBlob(
-                      alignment: Alignment(0.9, 0.6),
-                      color: AppColors.purple,
-                      size: 880,
-                      opacity: 0.16,
-                    ),
-                    const _AuroraBlob(
-                      alignment: Alignment(0.1, -0.95),
-                      color: AppColors.blue,
-                      size: 1000,
-                      opacity: 0.11,
-                    ),
-                    if (showEdgeParticles) ...const [
-                      _EdgeParticles(
-                        alignment: Alignment.bottomLeft,
-                        color: AppColors.red,
-                        angle: -0.36,
-                        seed: 11,
-                      ),
-                      _EdgeParticles(
-                        alignment: Alignment.bottomRight,
-                        color: AppColors.purple,
-                        angle: 0.32,
-                        seed: 23,
-                      ),
-                    ],
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppLayout.shellPaddingHorizontal,
-                        AppLayout.shellPaddingTop,
-                        AppLayout.shellPaddingHorizontal,
-                        AppLayout.shellPaddingBottom,
-                      ),
-                      child: Column(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isCompactLandscape =
+                  constraints.maxWidth < AppLayout.minimumLandscapeWidth ||
+                  constraints.maxHeight < AppLayout.minimumLandscapeHeight ||
+                  constraints.maxWidth < constraints.maxHeight;
+
+              return Stack(
+                children: [
+                  // Static decorative background (color pools + optional edge
+                  // particles). Isolated on its own layer so foreground focus
+                  // animations do not force it to repaint.
+                  Positioned.fill(
+                    child: RepaintBoundary(
+                      child: Stack(
                         children: [
-                          topBar,
-                          const SizedBox(height: AppLayout.shellBodyGap),
-                          Expanded(child: body),
-                          const SizedBox(height: AppLayout.shellBottomGap),
-                          bottomBar,
+                          _AuroraBlob(
+                            alignment: const Alignment(-0.85, 0.55),
+                            color: AppColors.red,
+                            size: constraints.biggest.shortestSide * 0.84,
+                            opacity: 0.16,
+                          ),
+                          _AuroraBlob(
+                            alignment: const Alignment(0.9, 0.6),
+                            color: AppColors.purple,
+                            size: constraints.biggest.shortestSide * 0.82,
+                            opacity: 0.16,
+                          ),
+                          _AuroraBlob(
+                            alignment: const Alignment(0.1, -0.95),
+                            color: AppColors.blue,
+                            size: constraints.biggest.shortestSide * 0.92,
+                            opacity: 0.11,
+                          ),
+                          if (showEdgeParticles) ...const [
+                            _EdgeParticles(
+                              alignment: Alignment.bottomLeft,
+                              color: AppColors.red,
+                              angle: -0.36,
+                              seed: 11,
+                            ),
+                            _EdgeParticles(
+                              alignment: Alignment.bottomRight,
+                              color: AppColors.purple,
+                              angle: 0.32,
+                              seed: 23,
+                            ),
+                          ],
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
+                  Positioned.fill(
+                    child: isCompactLandscape
+                        ? Center(
+                            child: FittedBox(
+                              fit: BoxFit.contain,
+                              child: SizedBox(
+                                width: AppLayout.minimumLandscapeWidth,
+                                height: AppLayout.minimumLandscapeHeight,
+                                child: _ShellContent(
+                                  topBar: topBar,
+                                  body: body,
+                                  bottomBar: bottomBar,
+                                  chromeVisible: chromeVisible,
+                                ),
+                              ),
+                            ),
+                          )
+                        : _ShellContent(
+                            topBar: topBar,
+                            body: body,
+                            bottomBar: bottomBar,
+                            chromeVisible: chromeVisible,
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ShellContent extends StatelessWidget {
+  const _ShellContent({
+    required this.topBar,
+    required this.body,
+    required this.bottomBar,
+    required this.chromeVisible,
+  });
+
+  final Widget topBar;
+  final Widget body;
+  final Widget bottomBar;
+  final bool chromeVisible;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final horizontalPadding = AppLayout.shellHorizontalPaddingFor(
+          constraints.maxWidth,
+        );
+        final topPadding = AppLayout.shellTopPaddingFor(constraints.maxHeight);
+        final bottomPadding = AppLayout.shellBottomPaddingFor(
+          constraints.maxHeight,
+        );
+        final bodyGap = AppLayout.shellBodyGapFor(constraints.maxHeight);
+        final bottomGap = AppLayout.shellBottomGapFor(constraints.maxHeight);
+
+        return Padding(
+          // Fullscreen means fullscreen: with the bars gone the shell padding
+          // would still frame the body in a band of background on all four
+          // sides, so the body would only grow slightly instead of taking the
+          // whole display.
+          padding: chromeVisible
+              ? EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  topPadding,
+                  horizontalPadding,
+                  bottomPadding,
+                )
+              : EdgeInsets.zero,
+          child: Column(
+            children: [
+              if (chromeVisible) ...[topBar, SizedBox(height: bodyGap)],
+              // Keyed so toggling the chrome does not destroy and rebuild the
+              // body. Without it the body's index in this Column shifts from 2
+              // to 0 when the bars go, the element is discarded, and every
+              // piece of state under it — the player's focus nodes, its
+              // fullscreen overlay, its whole widget subtree — is recreated.
+              Expanded(key: const ValueKey('karaokeShellBody'), child: body),
+              if (chromeVisible) ...[SizedBox(height: bottomGap), bottomBar],
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -181,7 +260,7 @@ class _EdgeParticles extends StatelessWidget {
             child: ParticleWave(
               color: color,
               seed: seed,
-              waveCount: 6,
+              waveCount: 4,
               opacity: 0.55,
             ),
           ),

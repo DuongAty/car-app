@@ -17,6 +17,7 @@ class GlowCard extends StatelessWidget {
     required this.child,
     required this.onPressed,
     this.particleSeed = 7,
+    this.showParticles = false,
     this.focusNode,
     this.autofocus = false,
     this.onFocusChange,
@@ -26,6 +27,7 @@ class GlowCard extends StatelessWidget {
   final Widget child;
   final VoidCallback onPressed;
   final int particleSeed;
+  final bool showParticles;
   final FocusNode? focusNode;
   final bool autofocus;
   final ValueChanged<bool>? onFocusChange;
@@ -52,31 +54,39 @@ class GlowCard extends StatelessWidget {
                 // Glass, but kept fairly solid on purpose: the outer bloom sits
                 // directly behind the card and a thinner face would let it wash
                 // out the whole panel.
-                child: LiquidGlass(
-                  radius: AppRadius.lg,
-                  tint: accentColor,
-                  tintStrength: focused ? 0.13 : 0.09,
-                  opacity: focused ? 0.72 : 0.68,
-                  rimWidth: focused ? 2.4 : 1.2,
-                  rimColor: focused
-                      ? accentColor
-                      : accentColor.withValues(alpha: 0.34),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: FractionallySizedBox(
-                          heightFactor: 0.5,
-                          child: ParticleWave(
-                            color: accentColor,
-                            seed: particleSeed,
-                            opacity: focused ? 1 : 0.7,
+                //
+                // On its own layer so the outer shadow's focus tween does not
+                // re-rasterize the glass edge + particle field every frame; the
+                // glass only repaints when `focused` actually flips.
+                child: RepaintBoundary(
+                  child: LiquidGlass(
+                    radius: AppRadius.lg,
+                    tint: accentColor,
+                    tintStrength: focused ? 0.13 : 0.09,
+                    opacity: focused ? 0.72 : 0.68,
+                    rimWidth: focused ? 2.4 : 1.2,
+                    rimColor: focused
+                        ? accentColor
+                        : accentColor.withValues(alpha: 0.34),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (showParticles)
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: FractionallySizedBox(
+                              heightFactor: 0.5,
+                              child: ParticleWave(
+                                color: accentColor,
+                                seed: particleSeed,
+                                waveCount: focused ? 3 : 2,
+                                opacity: focused ? 0.65 : 0.38,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      child,
-                    ],
+                        child,
+                      ],
+                    ),
                   ),
                 ),
               ),

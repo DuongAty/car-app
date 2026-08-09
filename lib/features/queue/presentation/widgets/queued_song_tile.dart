@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/shared/widgets/focusable_tile.dart';
 import '../../../../core/shared/widgets/liquid_glass.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_glows.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_radius.dart';
@@ -14,8 +15,7 @@ import '../../data/models/queued_song.dart';
 
 /// Row on the queue screen: the same shape as [SearchResultTile] (thumbnail,
 /// title, subtitle, tap-to-play), but with a source badge — since queue items
-/// can come from any of the three sources — reorder arrows, and a remove "×"
-/// instead of add.
+/// can come from any of the three sources — and a remove "×" instead of add.
 class QueuedSongTile extends StatelessWidget {
   const QueuedSongTile({
     super.key,
@@ -23,8 +23,7 @@ class QueuedSongTile extends StatelessWidget {
     required this.selected,
     required this.onPressed,
     required this.onRemove,
-    this.onMoveUp,
-    this.onMoveDown,
+    this.dragHandle,
     this.onFocused,
   });
 
@@ -32,12 +31,8 @@ class QueuedSongTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onPressed;
   final VoidCallback onRemove;
+  final Widget? dragHandle;
 
-  /// Null when the row is already at that end of the queue — the button
-  /// renders disabled rather than disappearing, so the column of rows never
-  /// shifts horizontally as you reach either end.
-  final VoidCallback? onMoveUp;
-  final VoidCallback? onMoveDown;
   final ValueChanged<bool>? onFocused;
 
   @override
@@ -51,8 +46,10 @@ class QueuedSongTile extends StatelessWidget {
       builder: (context, focused) {
         final active = selected || focused;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+        // Plain Container, not AnimatedContainer: instant focus highlight
+        // avoids tweening a blurred BoxShadow on every D-pad move while
+        // scrolling the queue. See SearchResultTile for the rationale.
+        return Container(
           height: AppLayout.browserResultTileHeight,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xs,
@@ -71,8 +68,10 @@ class QueuedSongTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              _ReorderArrows(onMoveUp: onMoveUp, onMoveDown: onMoveDown),
-              const SizedBox(width: AppSpacing.xs),
+              if (dragHandle != null) ...[
+                dragHandle!,
+                const SizedBox(width: AppSpacing.xs),
+              ],
               SongThumbnail(
                 seed: song.thumbnailSeed,
                 width: 104,
@@ -138,7 +137,7 @@ class QueuedSongTile extends StatelessWidget {
                       rimColor: active ? AppColors.green : null,
                       child: Center(
                         child: Icon(
-                          Icons.close_rounded,
+                          AppIcons.close,
                           size: 22,
                           color: active
                               ? AppColors.green
@@ -153,65 +152,6 @@ class QueuedSongTile extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _ReorderArrows extends StatelessWidget {
-  const _ReorderArrows({this.onMoveUp, this.onMoveDown});
-
-  final VoidCallback? onMoveUp;
-  final VoidCallback? onMoveDown;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _ReorderButton(
-          icon: Icons.keyboard_arrow_up_rounded,
-          onPressed: onMoveUp,
-        ),
-        const SizedBox(height: 4),
-        _ReorderButton(
-          icon: Icons.keyboard_arrow_down_rounded,
-          onPressed: onMoveDown,
-        ),
-      ],
-    );
-  }
-}
-
-class _ReorderButton extends StatelessWidget {
-  const _ReorderButton({required this.icon, required this.onPressed});
-
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final enabled = onPressed != null;
-
-    return InkWell(
-      onTap: onPressed,
-      customBorder: const CircleBorder(),
-      child: SizedBox(
-        width: 30,
-        height: 30,
-        child: LiquidGlass(
-          capsule: true,
-          detail: LiquidGlassDetail.simple,
-          lifted: false,
-          opacity: enabled ? 0.34 : 0.16,
-          child: Center(
-            child: Icon(
-              icon,
-              size: 18,
-              color: enabled ? AppColors.textPrimary : AppColors.textMuted,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

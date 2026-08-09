@@ -14,4 +14,4 @@ class MusicSource {
   final MusicSourceLogoStyle logoStyle;
 }
 
-enum MusicSourceLogoStyle { youtube, soundcloud, mixcloud }
+enum MusicSourceLogoStyle { youtube, soundcloud }

@@ -3,23 +3,27 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radius.dart';
 
-/// YouTube wordmark: red play plate followed by the "YouTube" word.
+/// YouTube wordmark: red play plate stacked above the "YouTube" word.
+/// Mirrors [SoundCloudLogo]'s column layout and proportions (mark, small
+/// gap, label) so the two source cards read as the same kind of block.
 class YoutubeLogo extends StatelessWidget {
   const YoutubeLogo({super.key, this.height = 62});
 
+  /// Height of the play plate; the label and gap scale from it using the
+  /// same ratios [SoundCloudLogo] uses relative to its mark height.
   final double height;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _PlayPlate(height: height),
-        SizedBox(width: height * 0.24),
+        SizedBox(height: height * 0.0682),
         Text(
           'YouTube',
           style: TextStyle(
-            fontSize: height * 0.82,
+            fontSize: height * 0.3523,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             letterSpacing: -1.2,
@@ -29,6 +33,18 @@ class YoutubeLogo extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Mark-only YouTube indicator: just the red play plate, no wordmark. Thin
+/// wrapper around the private [_PlayPlate] painter shared with [YoutubeLogo]
+/// and [YoutubeBadge].
+class YoutubeMark extends StatelessWidget {
+  const YoutubeMark({super.key, this.height = 32});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) => _PlayPlate(height: height);
 }
 
 /// Compact light chip used as the source badge on the preview player.
@@ -145,6 +161,27 @@ class SoundCloudLogo extends StatelessWidget {
   }
 }
 
+/// Mark-only SoundCloud indicator: just the waveform-and-cloud, no
+/// wordmark. Thin wrapper around the private [_SoundCloudMarkPainter]
+/// shared with [SoundCloudLogo]. Sized by [height] rather than width,
+/// since the painted shape spans the full box height (bars ramp up to it,
+/// the cloud body fills down to the baseline) so matching heights across
+/// marks lines up their rendered bounds even though the cloud is much
+/// wider than it is tall.
+class SoundCloudMark extends StatelessWidget {
+  const SoundCloudMark({super.key, this.height = 32});
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(height / 0.44, height),
+      painter: const _SoundCloudMarkPainter(color: AppColors.orange),
+    );
+  }
+}
+
 class _SoundCloudMarkPainter extends CustomPainter {
   const _SoundCloudMarkPainter({required this.color});
 
@@ -224,25 +261,4 @@ class _SoundCloudMarkPainter extends CustomPainter {
   @override
   bool shouldRepaint(_SoundCloudMarkPainter oldDelegate) =>
       oldDelegate.color != color;
-}
-
-/// Mixcloud wordmark.
-class MixcloudLogo extends StatelessWidget {
-  const MixcloudLogo({super.key, this.fontSize = 54});
-
-  final double fontSize;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      'M—XCLOUD',
-      style: TextStyle(
-        fontSize: fontSize,
-        fontWeight: FontWeight.w700,
-        color: AppColors.purple,
-        letterSpacing: 1.5,
-        height: 1,
-      ),
-    );
-  }
 }

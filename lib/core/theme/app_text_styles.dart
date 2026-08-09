@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
 
-/// Type scale for the 1920x1080 karaoke design canvas.
+/// Type scale for karaoke screens. These are large-display targets; individual
+/// widgets may clamp or scale down for smaller Android car screens.
 abstract final class AppTextStyles {
   static const TextStyle display = TextStyle(
     fontSize: 60,

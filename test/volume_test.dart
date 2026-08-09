@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:viet_ktv/core/providers/local_storage_provider.dart';
 import 'package:viet_ktv/core/providers/volume_provider.dart';
 import 'package:viet_ktv/core/services/volume_service.dart';
 import 'package:viet_ktv/core/shared/widgets/volume_indicator.dart';
@@ -15,6 +16,7 @@ import 'package:viet_ktv/features/source_selection/data/models/music_source.dart
 import 'package:viet_ktv/features/source_selection/presentation/pages/source_selection_page.dart';
 import 'package:viet_ktv/l10n/app_localizations.dart';
 
+import 'support/fake_local_storage_service.dart';
 import 'support/fake_music_sdk_platform.dart';
 
 const _source = MusicSource(
@@ -68,6 +70,9 @@ Future<void> _pump(
         // it mounts; without this it hits the real platform channel, which
         // has no test handler and hangs pumpAndSettle().
         musicSdkPlatformProvider.overrideWithValue(FakeMusicSdkPlatform()),
+        localStorageServiceProvider.overrideWithValue(
+          FakeLocalStorageService(),
+        ),
       ],
       child: MaterialApp(
         locale: locale,

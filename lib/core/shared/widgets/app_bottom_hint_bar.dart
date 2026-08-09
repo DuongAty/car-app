@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/bottom_hint_item.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_glows.dart';
 import '../../theme/app_layout.dart';
 import '../../theme/app_radius.dart';
 import '../../theme/app_spacing.dart';
@@ -18,12 +19,16 @@ class AppBottomHintBar extends StatelessWidget {
     required this.items,
     this.trailingItems = const [],
     this.leading,
+    this.center,
+    this.compactLabels = false,
     this.onItemTap,
   });
 
   final List<BottomHintItem> items;
   final List<BottomHintItem> trailingItems;
   final Widget? leading;
+  final Widget? center;
+  final bool compactLabels;
   final ValueChanged<BottomHintItem>? onItemTap;
 
   @override
@@ -47,17 +52,29 @@ class AppBottomHintBar extends StatelessWidget {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: _HintCluster(items: items, onTap: onItemTap),
+                child: _HintCluster(
+                  items: items,
+                  compactLabels: compactLabels,
+                  onTap: onItemTap,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.xl),
+            if (center != null) ...[
+              Expanded(flex: 2, child: center!),
+              const SizedBox(width: AppSpacing.xl),
+            ],
             Expanded(
               child: Align(
                 alignment: Alignment.centerRight,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerRight,
-                  child: _HintCluster(items: trailingItems, onTap: onItemTap),
+                  child: _HintCluster(
+                    items: trailingItems,
+                    compactLabels: compactLabels,
+                    onTap: onItemTap,
+                  ),
                 ),
               ),
             ),
@@ -69,9 +86,14 @@ class AppBottomHintBar extends StatelessWidget {
 }
 
 class _HintCluster extends StatelessWidget {
-  const _HintCluster({required this.items, this.onTap});
+  const _HintCluster({
+    required this.items,
+    required this.compactLabels,
+    this.onTap,
+  });
 
   final List<BottomHintItem> items;
+  final bool compactLabels;
   final ValueChanged<BottomHintItem>? onTap;
 
   @override
@@ -81,7 +103,11 @@ class _HintCluster extends StatelessWidget {
       children: [
         for (var index = 0; index < items.length; index++) ...[
           if (index > 0) const SizedBox(width: AppSpacing.xl),
-          _HintEntry(item: items[index], onTap: onTap),
+          _HintEntry(
+            item: items[index],
+            compactLabel: compactLabels,
+            onTap: onTap,
+          ),
         ],
       ],
     );
@@ -89,9 +115,14 @@ class _HintCluster extends StatelessWidget {
 }
 
 class _HintEntry extends StatelessWidget {
-  const _HintEntry({required this.item, this.onTap});
+  const _HintEntry({
+    required this.item,
+    required this.compactLabel,
+    this.onTap,
+  });
 
   final BottomHintItem item;
+  final bool compactLabel;
   final ValueChanged<BottomHintItem>? onTap;
 
   @override
@@ -108,8 +139,10 @@ class _HintEntry extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _HintBadge(item: item),
-            const SizedBox(width: AppSpacing.sm),
-            Text(item.label, style: Theme.of(context).textTheme.labelLarge),
+            if (!compactLabel) ...[
+              const SizedBox(width: AppSpacing.sm),
+              Text(item.label, style: Theme.of(context).textTheme.labelLarge),
+            ],
           ],
         ),
       ),
@@ -125,6 +158,38 @@ class _HintBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fill = item.accentColor ?? AppColors.keyFill;
+    if (item.badgeIcon != null) {
+      return SizedBox(
+        width: 36,
+        height: 36,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: AppGlows.control(fill, focused: true),
+          ),
+          child: LiquidGlass(
+            capsule: true,
+            detail: LiquidGlassDetail.simple,
+            lifted: false,
+            tint: null,
+            opacity: 0.42,
+            rimColor: fill,
+            rimWidth: 1.25,
+            child: Center(
+              child: Icon(
+                item.badgeIcon,
+                size: 30,
+                color: AppColors.textPrimary,
+                shadows: [
+                  Shadow(color: fill.withValues(alpha: 0.62), blurRadius: 10),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     // Yellow badges need dark glyphs to stay legible; the darker accents and
     // the neutral badge keep white ones.
     final onFill = fill.computeLuminance() > 0.5
@@ -142,17 +207,15 @@ class _HintBadge extends StatelessWidget {
         tintStrength: 0.92,
         opacity: 0.95,
         child: Center(
-          child: item.badgeIcon != null
-              ? Icon(item.badgeIcon, size: 19, color: onFill)
-              : Text(
-                  item.badgeText!,
-                  style: TextStyle(
-                    fontSize: item.badgeText!.length > 1 ? 13 : 16,
-                    fontWeight: FontWeight.w700,
-                    color: onFill,
-                    height: 1.1,
-                  ),
-                ),
+          child: Text(
+            item.badgeText!,
+            style: TextStyle(
+              fontSize: item.badgeText!.length > 1 ? 13 : 16,
+              fontWeight: FontWeight.w700,
+              color: onFill,
+              height: 1.1,
+            ),
+          ),
         ),
       ),
     );

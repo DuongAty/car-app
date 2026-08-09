@@ -62,7 +62,10 @@ class _ParticleWavePainter extends CustomPainter {
       final phase = random.nextDouble() * pi * 2;
       final frequency = 1.1 + random.nextDouble() * 0.9;
       final depthFade = 1 - wave / (waveCount + 1);
-      final dotCount = max(24, (size.width / 4).round());
+      // Sparser sampling than the original width/9: on a 1-core box each dot is
+      // a synchronous drawCircle, and the stream still reads as continuous at
+      // this density behind the panels.
+      final dotCount = max(14, (size.width / 16).round());
 
       for (var i = 0; i < dotCount; i++) {
         final t = i / (dotCount - 1);

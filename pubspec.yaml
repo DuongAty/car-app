@@ -40,7 +40,16 @@ dependencies:
   flutter_volume_controller: ^2.0.1
   just_audio: ^0.10.5
   video_player: ^2.13.0
-
+  # Direct dependency because lib/ reaches VideoPlayerPlatform.instance for
+  # video track selection: VideoPlayerController does not wrap getVideoTracks
+  # or selectVideoTrack even though Android implements both.
+  video_player_platform_interface: ^6.9.0
+  shared_preferences: ^2.3.3
+  material_symbols_icons: ^4.2960.0
+  speech_to_text: ^7.4.0
+  supabase_flutter: ^2.16.0
+  audio_session: ^0.2.4
+  audio_service: ^0.18.19
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -51,7 +60,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  video_player_platform_interface: ^6.9.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -67,7 +75,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/visualizer/
+    - assets/visualizer_light/
+    - assets/browse/
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 

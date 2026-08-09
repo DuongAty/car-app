@@ -1,24 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/models/bottom_hint_item.dart';
-import '../../../../core/providers/locale_provider.dart';
-import '../../../../core/providers/volume_provider.dart';
-import '../../../../core/shared/widgets/app_bottom_hint_bar.dart';
-import '../../../../core/shared/widgets/brand_wordmark.dart';
-import '../../../../core/shared/widgets/circle_icon_button.dart';
 import '../../../../core/shared/widgets/collapsible_axis.dart';
 import '../../../../core/shared/widgets/karaoke_shell.dart';
-import '../../../../core/shared/widgets/language_toggle.dart';
-import '../../../../core/shared/widgets/title_pill.dart';
-import '../../../../core/shared/widgets/volume_indicator.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/shared/widgets/surface_scope.dart';
 import '../../../../core/theme/app_layout.dart';
-import '../../../../core/theme/app_spacing.dart';
-import '../../../../l10n/l10n.dart';
 import '../../../playback/presentation/providers/now_playing_controller.dart';
+import '../../../playback/presentation/widgets/app_control_bar.dart';
+import '../../../song_browser/data/mock/song_browser_mock_data.dart';
+import '../../../song_browser/presentation/widgets/main_top_bar.dart';
 import '../../../song_browser/presentation/widgets/preview_player.dart';
-import '../providers/queue_provider.dart';
 import '../widgets/selected_queue_panel.dart';
 
 /// Lists every song added from a search result's "+" across all three
@@ -29,95 +20,73 @@ class SelectedQueuePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = context.l10n;
-    final locale = ref.watch(appLocaleProvider);
-    final localeController = ref.read(appLocaleProvider.notifier);
-    final volume = ref.watch(volumeProvider);
     // Shared with the song browser: expanding the video here (or having left
     // it expanded there) collapses this list the same way.
-    final isExpanded = ref.watch(
-      nowPlayingProvider.select((value) => value.isExpanded),
-    );
+    final mode = ref.watch(nowPlayingProvider.select((value) => value.mode));
 
-    return KaraokeShell(
-      topBar: SizedBox(
-        height: AppLayout.topNavItemHeight,
-        child: Row(
-          children: [
-            const BrandWordmark(fontSize: 34),
-            const SizedBox(width: AppSpacing.sm),
-            TitlePill(label: l10n.songSelected, color: AppColors.yellow),
-            const Spacer(),
-            LanguageToggle(
-              isVietnamese: locale.languageCode == 'vi',
-              onToggle: localeController.toggle,
-              compact: true,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            CircleIconButton(
-              icon: Icons.language,
-              onPressed: localeController.toggle,
-            ),
-          ],
+    return PopScope(
+      // Back must leave fullscreen rather than the screen. Without this the
+      // user's only way out is a button that auto-hides.
+      canPop: mode != PlayerViewMode.fullscreen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          ref.read(nowPlayingProvider.notifier).exitFullscreen();
+        }
+      },
+      child: KaraokeShell(
+        chromeVisible: mode != PlayerViewMode.fullscreen,
+        topBar: MainTopBar(selectedIndex: SongBrowserMockData.selectedTabIndex),
+        body: Builder(
+          builder: (context) {
+            final Widget row = Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CollapsibleAxis(
+                  axis: Axis.horizontal,
+                  // +1 for the hairline that replaced the gap.
+                  extent: AppLayout.browserRightPanelWidth + 1,
+                  collapsed: mode != PlayerViewMode.normal,
+                  // Anchored to the far edge so the panel slides out of frame
+                  // (matching the song browser's side panels) rather than
+                  // being trimmed in place.
+                  alignment: Alignment.topRight,
+                  // Keep the hairline inside the collapsible region, so it
+                  // closes with the queue column.
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(
+                        width: AppLayout.browserRightPanelWidth,
+                        child: SelectedQueuePanel(),
+                      ),
+                      // Built only in normal mode: collapsed still mounts
+                      // this child (state is kept alive for an instant
+                      // re-expand), so the divider must be conditional
+                      // itself or it would keep painting — clipped to
+                      // nothing, but still in the tree — down the player's
+                      // left edge.
+                      if (mode == PlayerViewMode.normal)
+                        const SurfaceDivider(axis: Axis.vertical),
+                    ],
+                  ),
+                ),
+                const Expanded(child: PreviewPlayer()),
+              ],
+            );
+
+            // No slab in fullscreen: the player is deliberately full-bleed
+            // there, and a slab would put the rounded frame back. The
+            // collapsed queue column is still mounted underneath (so its
+            // state survives an instant return to normal), so it still
+            // needs the bare scope — without it, its panel would paint its
+            // own bare surface with no slab there to replace it.
+            return mode == PlayerViewMode.fullscreen
+                ? SurfaceScope(child: row)
+                : ContentSlab(child: row);
+          },
         ),
-      ),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          CollapsibleAxis(
-            axis: Axis.horizontal,
-            extent:
-                AppLayout.browserRightPanelWidth + AppLayout.browserColumnGap,
-            collapsed: isExpanded,
-            // Anchored to the far edge so the panel slides out of frame
-            // (matching the song browser's side panels) rather than being
-            // trimmed in place.
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: AppLayout.browserColumnGap),
-              child: const SelectedQueuePanel(),
-            ),
-          ),
-          const Expanded(child: PreviewPlayer()),
-        ],
-      ),
-      bottomBar: AppBottomHintBar(
-        leading: VolumeIndicator(
-          level: volume.level,
-          enabled: volume.isAvailable,
-          onChanged: ref.read(volumeProvider.notifier).setLevel,
-        ),
-        items: const [],
-        trailingItems: [
-          BottomHintItem(
-            id: 'play',
-            badgeText: 'OK',
-            label: l10n.hintChooseAndPlay,
-            accentColor: AppColors.greenDeep,
-          ),
-          BottomHintItem(
-            id: 'clear',
-            badgeText: 'C',
-            label: l10n.hintClearQueue,
-            accentColor: AppColors.yellow,
-          ),
-          BottomHintItem(
-            id: 'back',
-            badgeIcon: Icons.undo_rounded,
-            label: l10n.hintBack,
-          ),
-        ],
-        onItemTap: (item) => _handleHint(context, ref, item),
+        bottomBar: const AppControlBar(hasStagePlayer: true),
       ),
     );
-  }
-
-  void _handleHint(BuildContext context, WidgetRef ref, BottomHintItem item) {
-    switch (item.id) {
-      case 'back':
-        Navigator.of(context).maybePop();
-      case 'clear':
-        ref.read(queueProvider.notifier).clear();
-    }
   }
 }

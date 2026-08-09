@@ -52,9 +52,8 @@ class _SourceLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (style) {
-      MusicSourceLogoStyle.youtube => const YoutubeLogo(height: 56),
+      MusicSourceLogoStyle.youtube => const YoutubeLogo(height: 120),
       MusicSourceLogoStyle.soundcloud => const SoundCloudLogo(width: 240),
-      MusicSourceLogoStyle.mixcloud => const MixcloudLogo(fontSize: 50),
     };
   }
 }

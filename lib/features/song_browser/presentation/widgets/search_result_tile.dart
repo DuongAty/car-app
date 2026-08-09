@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/shared/widgets/favorite_toggle.dart';
 import '../../../../core/shared/widgets/focusable_tile.dart';
 import '../../../../core/shared/widgets/liquid_glass.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_glows.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../source_selection/data/models/music_source.dart';
 import '../../data/models/song_item.dart';
 import 'song_thumbnail.dart';
 
@@ -22,6 +25,7 @@ class SearchResultTile extends StatelessWidget {
     required this.selected,
     required this.onPressed,
     required this.onAdd,
+    required this.source,
     this.onFocused,
   });
 
@@ -29,6 +33,7 @@ class SearchResultTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onPressed;
   final VoidCallback onAdd;
+  final MusicSourceLogoStyle source;
   final VoidCallback? onFocused;
 
   @override
@@ -45,8 +50,11 @@ class SearchResultTile extends StatelessWidget {
       builder: (context, focused) {
         final active = selected || focused;
 
-        return AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+        // Plain Container, not AnimatedContainer: the focus highlight (border +
+        // fill + glow) switches instantly. Animating it tweened a blurred
+        // BoxShadow over 140ms on every D-pad move, which is continuous blur
+        // rasterization on a 1-core box while scrolling a list.
+        return Container(
           height: AppLayout.browserResultTileHeight,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xs,
@@ -95,6 +103,8 @@ class SearchResultTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
+              FavoriteToggle(song: item, source: source),
+              const SizedBox(width: AppSpacing.xs),
               InkWell(
                 onTap: onAdd,
                 customBorder: const CircleBorder(),
@@ -111,7 +121,7 @@ class SearchResultTile extends StatelessWidget {
                     rimColor: active ? AppColors.green : null,
                     child: Center(
                       child: Icon(
-                        Icons.add,
+                        AppIcons.add,
                         size: 22,
                         color: active ? AppColors.green : AppColors.textPrimary,
                       ),

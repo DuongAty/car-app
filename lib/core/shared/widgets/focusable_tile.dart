@@ -12,6 +12,7 @@ class FocusableTile extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.onFocusChange,
+    this.onLongPress,
   });
 
   final Widget Function(BuildContext context, bool focused) builder;
@@ -19,6 +20,7 @@ class FocusableTile extends StatefulWidget {
   final FocusNode? focusNode;
   final bool autofocus;
   final ValueChanged<bool>? onFocusChange;
+  final VoidCallback? onLongPress;
 
   @override
   State<FocusableTile> createState() => _FocusableTileState();
@@ -56,6 +58,7 @@ class _FocusableTileState extends State<FocusableTile> {
       },
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
+        onLongPress: widget.onLongPress,
         onTap: () {
           widget.focusNode?.requestFocus();
           widget.onPressed();

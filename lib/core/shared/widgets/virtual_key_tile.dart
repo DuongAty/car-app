@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 import '../../theme/app_glows.dart';
+import '../../theme/app_motion.dart';
 import '../../theme/app_radius.dart';
 import 'focusable_tile.dart';
 import 'liquid_glass.dart';
@@ -15,6 +16,9 @@ class VirtualKeyTile extends StatelessWidget {
     this.label,
     this.icon,
     this.filled = false,
+    this.onLongPress,
+    this.fontSize,
+    this.iconSize,
   }) : assert(
          (label == null) != (icon == null),
          'Provide exactly one of label or icon',
@@ -24,18 +28,22 @@ class VirtualKeyTile extends StatelessWidget {
   final String? label;
   final IconData? icon;
   final bool filled;
+  final VoidCallback? onLongPress;
+  final double? fontSize;
+  final double? iconSize;
 
   @override
   Widget build(BuildContext context) {
     return FocusableTile(
       onPressed: onPressed,
+      onLongPress: onLongPress,
       builder: (context, focused) {
         return AnimatedScale(
-          duration: const Duration(milliseconds: 140),
+          duration: AppMotion.focus,
           curve: Curves.easeOut,
           scale: focused ? 1.06 : 1,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
+            duration: AppMotion.focus,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.sm),
               boxShadow: AppGlows.control(AppColors.green, focused: focused),
@@ -53,13 +61,19 @@ class VirtualKeyTile extends StatelessWidget {
               rimColor: focused || filled ? AppColors.green : null,
               child: Center(
                 child: icon != null
-                    ? Icon(icon, size: 24, color: AppColors.textPrimary)
+                    ? Icon(
+                        icon,
+                        size: iconSize ?? 24,
+                        color: AppColors.textPrimary,
+                      )
                     : Text(
                         label!,
                         maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
                         style: Theme.of(context).textTheme.titleMedium
                             ?.copyWith(
-                              fontSize: 22,
+                              fontSize: fontSize ?? 22,
                               fontWeight: filled
                                   ? FontWeight.w700
                                   : FontWeight.w600,

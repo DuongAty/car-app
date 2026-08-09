@@ -1,13 +1,16 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:viet_ktv/core/theme/app_icons.dart';
 import 'package:video_player/video_player.dart';
 import 'package:video_player_platform_interface/video_player_platform_interface.dart';
 
+import 'package:viet_ktv/core/providers/local_storage_provider.dart';
 import 'package:viet_ktv/core/services/music_sdk_platform.dart';
 import 'package:viet_ktv/core/shared/widgets/liquid_glass.dart';
-import 'package:viet_ktv/core/shared/widgets/virtual_key_tile.dart';
 import 'package:viet_ktv/core/theme/app_colors.dart';
 import 'package:viet_ktv/features/playback/data/audio_track_player.dart';
 import 'package:viet_ktv/features/playback/presentation/providers/now_playing_controller.dart';
@@ -15,6 +18,7 @@ import 'package:viet_ktv/features/queue/presentation/pages/selected_queue_page.d
 import 'package:viet_ktv/features/queue/presentation/providers/queue_playback_controller.dart';
 import 'package:viet_ktv/features/queue/presentation/providers/queue_provider.dart';
 import 'package:viet_ktv/features/queue/presentation/widgets/queued_song_tile.dart';
+import 'package:viet_ktv/features/queue/presentation/widgets/selected_queue_panel.dart';
 import 'package:viet_ktv/features/song_browser/data/models/song_item.dart';
 import 'package:viet_ktv/features/song_browser/data/music_sdk_song_repository.dart';
 import 'package:viet_ktv/features/song_browser/presentation/pages/song_browser_page.dart';
@@ -25,6 +29,7 @@ import 'package:viet_ktv/routes/app_router.dart';
 
 import 'support/fake_music_sdk_platform.dart';
 import 'support/fake_audio_track_player.dart';
+import 'support/fake_local_storage_service.dart';
 import 'support/fake_video_player_platform.dart';
 
 const _source = MusicSource(
@@ -59,6 +64,9 @@ Future<void> _pumpBrowser(
         audioTrackPlayerFactoryProvider.overrideWithValue(
           FakeAudioTrackPlayer.new,
         ),
+        localStorageServiceProvider.overrideWithValue(
+          FakeLocalStorageService(),
+        ),
       ],
       child: MaterialApp(
         locale: const Locale('vi'),
@@ -83,14 +91,18 @@ Future<void> _pumpBrowser(
 /// Types [query], submits it, then adds the single matching result to the
 /// queue via the search result's "+".
 Future<void> _searchAndAddToQueue(WidgetTester tester, String query) async {
-  for (final char in query.split('')) {
-    await tester.tap(find.widgetWithText(VirtualKeyTile, char));
-    await tester.pump();
-  }
-  await tester.tap(find.widgetWithText(VirtualKeyTile, 'TÌM'));
-  await tester.pumpAndSettle();
+  await _submitSearch(tester, query);
 
-  await tester.tap(find.byIcon(Icons.add));
+  await tester.tap(find.byIcon(AppIcons.add));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _submitSearch(WidgetTester tester, String query) async {
+  await tester.enterText(
+    find.byKey(const ValueKey('songBrowserNativeSearchField')),
+    query,
+  );
+  await tester.testTextInput.receiveAction(TextInputAction.search);
   await tester.pumpAndSettle();
 }
 
@@ -149,21 +161,46 @@ void main() {
     await _openQueueScreen(tester);
     expect(find.text('1 bài'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.close_rounded));
+    await tester.tap(find.byIcon(AppIcons.close));
     await tester.pumpAndSettle();
 
     expect(find.text('0 bài'), findsOneWidget);
     expect(find.textContaining('Chưa có bài hát nào'), findsOneWidget);
   });
 
-  testWidgets('clear_hint_empties_the_whole_queue', (tester) async {
+  testWidgets('undo_restores_a_removed_queue_song', (tester) async {
+    await _pumpBrowser(tester, platform: FakeMusicSdkPlatform());
+
+    await _searchAndAddToQueue(tester, 'OFFICIAL');
+    await _openQueueScreen(tester);
+
+    await tester.tap(find.byIcon(AppIcons.close));
+    // The remove handler hides any current snack bar (the "added" one) before
+    // showing this one, so the new snack bar appears after that hide-out — pump
+    // past it rather than assuming it shows in a single frame.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Đã xóa khỏi hàng chờ'), findsOneWidget);
+
+    final action = find.widgetWithText(SnackBarAction, 'Hoàn tác');
+    expect(action, findsOneWidget);
+
+    tester.widget<SnackBarAction>(action).onPressed();
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 bài'), findsOneWidget);
+    expect(find.byType(QueuedSongTile), findsOneWidget);
+  });
+
+  testWidgets('clear_button_empties_the_whole_queue', (tester) async {
     await _pumpBrowser(tester, platform: FakeMusicSdkPlatform());
 
     await _searchAndAddToQueue(tester, 'OFFICIAL');
     await _openQueueScreen(tester);
     expect(find.text('1 bài'), findsOneWidget);
 
-    await tester.tap(find.text('Xóa tất cả hàng chờ'));
+    await tester.tap(find.byIcon(AppIcons.clearAll));
     await tester.pumpAndSettle();
 
     expect(find.text('0 bài'), findsOneWidget);
@@ -196,14 +233,12 @@ void main() {
     final platform = FakeMusicSdkPlatform();
     await _pumpBrowser(tester, platform: platform);
 
-    for (final char in 'KARAOKE'.split('')) {
-      await tester.tap(find.widgetWithText(VirtualKeyTile, char));
-      await tester.pump();
-    }
-    await tester.tap(find.widgetWithText(VirtualKeyTile, 'TÌM'));
-    await tester.pumpAndSettle();
+    // 'Lạc Trôi' matches all three catalog entries (ids 1, 9, 10); the first
+    // two results queued below are still ids 1 and 9, same as the retired
+    // 'KARAOKE' query used to produce.
+    await _submitSearch(tester, 'Lạc Trôi');
 
-    final addButtons = find.byIcon(Icons.add);
+    final addButtons = find.byIcon(AppIcons.add);
     await tester.tap(addButtons.at(0));
     await tester.pumpAndSettle();
     await tester.tap(addButtons.at(1));
@@ -217,9 +252,7 @@ void main() {
       findsNWidgets(2),
     );
     await tester.tap(
-      find
-          .descendant(of: drawer, matching: find.byIcon(Icons.close_rounded))
-          .first,
+      find.descendant(of: drawer, matching: find.byIcon(AppIcons.close)).first,
     );
     await tester.pumpAndSettle();
 
@@ -229,7 +262,7 @@ void main() {
     }
     expect(platform.lastPlayableLinkTrackId, '9');
 
-    await tester.tap(find.byIcon(Icons.skip_next_rounded));
+    await tester.tap(find.byIcon(AppIcons.next));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 20));
     }
@@ -240,36 +273,39 @@ void main() {
     drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
       find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsOneWidget,
+      findsNWidgets(2),
     );
     await tester.tap(
-      find
-          .descendant(of: drawer, matching: find.byIcon(Icons.close_rounded))
-          .first,
+      find.descendant(of: drawer, matching: find.byIcon(AppIcons.close)).first,
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.skip_next_rounded));
+    await tester.tap(find.byIcon(AppIcons.next));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 20));
     }
-    expect(platform.lastPlayableLinkTrackId, '9');
+    // Track 9 is still within the playable-link cache TTL from its earlier
+    // play, so wrapping back to it replays from cache without re-resolving.
+    // Verify the current track from the now-playing state, not a fresh resolve.
+    final playback = ProviderScope.containerOf(
+      tester.element(find.byType(SongBrowserPage)),
+    ).read(nowPlayingProvider).playback;
+    expect(playback, isA<PlaybackReady>());
+    expect((playback as PlaybackReady).song.id, '9');
 
     await tester.tap(find.textContaining('Xem danh'));
     await tester.pumpAndSettle();
     drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
       find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsNothing,
+      findsOneWidget,
     );
     await tester.tap(
-      find
-          .descendant(of: drawer, matching: find.byIcon(Icons.close_rounded))
-          .first,
+      find.descendant(of: drawer, matching: find.byIcon(AppIcons.close)).first,
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.skip_previous_rounded));
+    await tester.tap(find.byIcon(AppIcons.previous));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 20));
     }
@@ -284,20 +320,18 @@ void main() {
     final platform = FakeMusicSdkPlatform();
     await _pumpBrowser(tester, platform: platform);
 
-    for (final char in 'KARAOKE'.split('')) {
-      await tester.tap(find.widgetWithText(VirtualKeyTile, char));
-      await tester.pump();
-    }
-    await tester.tap(find.widgetWithText(VirtualKeyTile, 'TÌM'));
-    await tester.pumpAndSettle();
+    // 'Lạc Trôi' matches all three catalog entries (ids 1, 9, 10); the first
+    // two results queued below are still ids 1 and 9, same as the retired
+    // 'KARAOKE' query used to produce.
+    await _submitSearch(tester, 'Lạc Trôi');
 
-    final addButtons = find.byIcon(Icons.add);
+    final addButtons = find.byIcon(AppIcons.add);
     await tester.tap(addButtons.at(0));
     await tester.pumpAndSettle();
     await tester.tap(addButtons.at(1));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.skip_next_rounded));
+    await tester.tap(find.byIcon(AppIcons.next));
     for (var i = 0; i < 10; i++) {
       await tester.pump(const Duration(milliseconds: 20));
     }
@@ -314,7 +348,7 @@ void main() {
     final drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
       find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsNothing,
+      findsOneWidget,
     );
 
     await tester.pumpWidget(const SizedBox());
@@ -357,18 +391,63 @@ void main() {
 
       await queuePlayback.playNext();
       expect(platform.lastPlayableLinkTrackId, 'sc-1');
-      expect(queue.state.length, 1);
+      expect(queue.state.items, hasLength(2));
 
       latestAudioPlayer!.complete();
       await Future<void>.delayed(Duration.zero);
 
       expect(platform.lastPlayableLinkTrackId, 'sc-2');
-      expect(queue.state, isEmpty);
+      expect(queue.state.items, hasLength(1));
 
       nowPlaying.dispose();
       queuePlayback.dispose();
     },
   );
+
+  test('non_loop_removes_a_song_only_after_the_next_song_starts', () async {
+    final platform = FakeMusicSdkPlatform();
+    final nowPlaying = NowPlayingController(
+      MusicSdkSongRepository(platform),
+      FakeAudioTrackPlayer.new,
+    );
+    final queue = QueueController()
+      ..add(
+        const SongItem(
+          id: 'first',
+          title: 'Bài đầu',
+          subtitle: 'SoundCloud',
+          duration: '03:00',
+          thumbnailSeed: 1,
+          badge: null,
+        ),
+        _soundCloudSource,
+      )
+      ..add(
+        const SongItem(
+          id: 'second',
+          title: 'Bài sau',
+          subtitle: 'SoundCloud',
+          duration: '04:00',
+          thumbnailSeed: 2,
+          badge: null,
+        ),
+        _soundCloudSource,
+      );
+    final playback = QueuePlaybackController(queue, nowPlaying);
+
+    await playback.playNext();
+    expect(queue.state.items.map((item) => item.song.id), ['first', 'second']);
+
+    await playback.playNext();
+    expect(platform.lastPlayableLinkTrackId, 'second');
+    expect(queue.state.items.map((item) => item.song.id), ['second']);
+
+    await playback.playNext();
+    expect(queue.state.items.map((item) => item.song.id), ['second']);
+
+    nowPlaying.dispose();
+    playback.dispose();
+  });
 
   testWidgets(
     'keeps_playing_the_same_video_when_switching_to_the_queue_screen',
@@ -378,12 +457,7 @@ void main() {
 
       // Play a result directly from the browser (not "+" — this is real
       // playback, not queuing).
-      for (final char in 'OFFICIAL'.split('')) {
-        await tester.tap(find.widgetWithText(VirtualKeyTile, char));
-        await tester.pump();
-      }
-      await tester.tap(find.widgetWithText(VirtualKeyTile, 'TÌM'));
-      await tester.pumpAndSettle();
+      await _submitSearch(tester, 'OFFICIAL');
 
       await tester.tap(find.text('Lạc Trôi - Sơn Tùng M-TP (Official MV)'));
       // Not pumpAndSettle: a playing video keeps a 100ms position Timer alive.
@@ -420,49 +494,288 @@ void main() {
     },
   );
 
-  testWidgets('moving_a_queued_song_down_changes_its_order', (tester) async {
+  test('drag_reorder_changes_the_next_playback_order', () {
+    final queue = QueueController()
+      ..add(
+        const SongItem(
+          id: 'first',
+          title: 'Bài đầu',
+          subtitle: 'YouTube',
+          duration: '03:00',
+          thumbnailSeed: 1,
+          badge: null,
+        ),
+        _source,
+      )
+      ..add(
+        const SongItem(
+          id: 'second',
+          title: 'Bài sau',
+          subtitle: 'YouTube',
+          duration: '04:00',
+          thumbnailSeed: 2,
+          badge: null,
+        ),
+        _source,
+      );
+
+    queue.moveToSlot(0, 2);
+
+    expect(queue.state.items.map((item) => item.song.id), ['second', 'first']);
+  });
+
+  test('repeat_one_replays_the_same_song_without_removing_it', () async {
+    final platform = FakeMusicSdkPlatform();
+    final nowPlaying = NowPlayingController(
+      MusicSdkSongRepository(platform),
+      FakeAudioTrackPlayer.new,
+    );
+    final queue = QueueController()
+      ..add(
+        const SongItem(
+          id: 'sc-1',
+          title: 'SoundCloud 1',
+          subtitle: 'SoundCloud',
+          duration: '30:00',
+          thumbnailSeed: 1,
+          badge: null,
+        ),
+        _soundCloudSource,
+      )
+      ..setQueueRepeatMode(QueueRepeatMode.one);
+    final queuePlayback = QueuePlaybackController(queue, nowPlaying);
+
+    await queuePlayback.playNext();
+    expect(platform.lastPlayableLinkTrackId, 'sc-1');
+    expect(queue.state.items, hasLength(1));
+
+    await queuePlayback.playNext();
+    expect(platform.lastPlayableLinkTrackId, 'sc-1');
+
+    nowPlaying.dispose();
+    queuePlayback.dispose();
+  });
+
+  test(
+    'repeat_one_replays_a_directly_played_song_with_an_empty_queue',
+    () async {
+      final platform = FakeMusicSdkPlatform();
+      final createdPlayers = <FakeAudioTrackPlayer>[];
+      final nowPlaying = NowPlayingController(
+        MusicSdkSongRepository(platform),
+        () {
+          final player = FakeAudioTrackPlayer();
+          createdPlayers.add(player);
+          return player;
+        },
+      );
+      final queue = QueueController()..setQueueRepeatMode(QueueRepeatMode.one);
+      final queuePlayback = QueuePlaybackController(queue, nowPlaying);
+      nowPlaying.setOnCompleted(queuePlayback.playNext);
+
+      // Reproduces the bug report: play a song directly (e.g. from search
+      // results), never touching the queue, so it stays empty.
+      const song = SongItem(
+        id: 'direct-1',
+        title: 'Direct Play',
+        subtitle: 'SoundCloud',
+        duration: '30:00',
+        thumbnailSeed: 1,
+        badge: null,
+      );
+      await nowPlaying.play(song, MusicSourceLogoStyle.soundcloud);
+      expect(queue.state.items, isEmpty);
+      expect(createdPlayers, hasLength(1));
+
+      createdPlayers.single.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      // A genuine replay tears down the old player and creates a fresh one
+      // via nowPlaying.play(); if repeat-one silently no-ops (the bug), no
+      // second player is ever created and playback stays paused.
+      expect(createdPlayers, hasLength(2));
+      expect(platform.lastPlayableLinkTrackId, 'direct-1');
+      expect(nowPlaying.state.playback, isA<PlaybackReady>());
+
+      nowPlaying.dispose();
+      queuePlayback.dispose();
+    },
+  );
+
+  test(
+    'repeat_one_with_continuous_playback_off_does_nothing_on_completion',
+    () async {
+      final platform = FakeMusicSdkPlatform();
+      final nowPlaying = NowPlayingController(
+        MusicSdkSongRepository(platform),
+        FakeAudioTrackPlayer.new,
+      );
+      final queue = QueueController()..setQueueRepeatMode(QueueRepeatMode.one);
+      final queuePlayback = QueuePlaybackController(queue, nowPlaying);
+      queuePlayback.setContinuousPlayback(false);
+      nowPlaying.setOnCompleted(queuePlayback.playNext);
+
+      const song = SongItem(
+        id: 'direct-2',
+        title: 'Direct Play 2',
+        subtitle: 'SoundCloud',
+        duration: '30:00',
+        thumbnailSeed: 1,
+        badge: null,
+      );
+      await nowPlaying.play(song, MusicSourceLogoStyle.soundcloud);
+
+      final audioPlayer = nowPlaying.state.audioPlayer as FakeAudioTrackPlayer;
+      expect(audioPlayer.playCallCount, 1);
+
+      audioPlayer.complete();
+      await Future<void>.delayed(Duration.zero);
+
+      // Continuous playback is off, so completion must not replay — the
+      // player is not asked to play again.
+      expect(audioPlayer.playCallCount, 1);
+
+      nowPlaying.dispose();
+      queuePlayback.dispose();
+    },
+  );
+
+  test('repeat_one_with_nothing_playing_is_a_safe_no_op', () async {
+    final platform = FakeMusicSdkPlatform();
+    final nowPlaying = NowPlayingController(
+      MusicSdkSongRepository(platform),
+      FakeAudioTrackPlayer.new,
+    );
+    final queue = QueueController()..setQueueRepeatMode(QueueRepeatMode.one);
+    final queuePlayback = QueuePlaybackController(queue, nowPlaying);
+
+    await queuePlayback.playNext();
+
+    expect(platform.lastPlayableLinkTrackId, isNull);
+    expect(nowPlaying.state.playback, isA<PlaybackIdle>());
+
+    nowPlaying.dispose();
+    queuePlayback.dispose();
+  });
+
+  test('repeat_all_keeps_the_playlist_when_looping', () async {
+    final platform = FakeMusicSdkPlatform();
+    final nowPlaying = NowPlayingController(
+      MusicSdkSongRepository(platform),
+      FakeAudioTrackPlayer.new,
+    );
+    const song = SongItem(
+      id: 'sc-1',
+      title: 'SoundCloud 1',
+      subtitle: 'SoundCloud',
+      duration: '30:00',
+      thumbnailSeed: 1,
+      badge: null,
+    );
+    final queue = QueueController()
+      ..add(song, _soundCloudSource)
+      ..setQueueRepeatMode(QueueRepeatMode.all);
+    final queuePlayback = QueuePlaybackController(queue, nowPlaying);
+
+    await queuePlayback.playNext();
+    expect(platform.lastPlayableLinkTrackId, 'sc-1');
+    expect(queue.state.items, hasLength(1));
+
+    await queuePlayback.playNext();
+    expect(platform.lastPlayableLinkTrackId, 'sc-1');
+    expect(queue.state.items, hasLength(1));
+
+    nowPlaying.dispose();
+    queuePlayback.dispose();
+  });
+
+  test(
+    'shuffle_picks_from_the_current_queue_rather_than_always_the_first',
+    () async {
+      final platform = FakeMusicSdkPlatform();
+      final nowPlaying = NowPlayingController(
+        MusicSdkSongRepository(platform),
+        FakeAudioTrackPlayer.new,
+      );
+      final queue = QueueController()
+        ..add(
+          const SongItem(
+            id: 'sc-1',
+            title: 'SoundCloud 1',
+            subtitle: 'SoundCloud',
+            duration: '30:00',
+            thumbnailSeed: 1,
+            badge: null,
+          ),
+          _soundCloudSource,
+        )
+        ..add(
+          const SongItem(
+            id: 'sc-2',
+            title: 'SoundCloud 2',
+            subtitle: 'SoundCloud',
+            duration: '28:00',
+            thumbnailSeed: 2,
+            badge: null,
+          ),
+          _soundCloudSource,
+        )
+        ..toggleShuffle();
+      // Seeded so the pick is deterministic for this test.
+      final queuePlayback = QueuePlaybackController(
+        queue,
+        nowPlaying,
+        random: math.Random(0),
+      );
+
+      await queuePlayback.playNext();
+
+      expect(platform.lastPlayableLinkTrackId, 'sc-2');
+      expect(queue.state.items, hasLength(2));
+
+      nowPlaying.dispose();
+      queuePlayback.dispose();
+    },
+  );
+
+  testWidgets('repeat_button_cycles_through_modes', (tester) async {
     await _pumpBrowser(tester, platform: FakeMusicSdkPlatform());
-
-    // "KARAOKE" matches both the seed track (id '1', subtitle carries the
-    // recommendations seed phrase) and the Karaoke search result (id '9'),
-    // giving two distinct rows to reorder.
-    for (final char in 'KARAOKE'.split('')) {
-      await tester.tap(find.widgetWithText(VirtualKeyTile, char));
-      await tester.pump();
-    }
-    await tester.tap(find.widgetWithText(VirtualKeyTile, 'TÌM'));
-    await tester.pumpAndSettle();
-
-    final addButtons = find.byIcon(Icons.add);
-    expect(addButtons, findsNWidgets(2));
-    await tester.tap(addButtons.at(0));
-    await tester.pumpAndSettle();
-    await tester.tap(addButtons.at(1));
-    await tester.pumpAndSettle();
-
     await _openQueueScreen(tester);
 
-    final firstTitle = find.text('Lạc Trôi');
-    final secondTitle = find.text('Lạc Trôi - Sơn Tùng M-TP (Karaoke)');
-    expect(
-      tester.getCenter(firstTitle).dy,
-      lessThan(tester.getCenter(secondTitle).dy),
+    Finder repeatButton() => find.descendant(
+      of: find.byType(SelectedQueuePanel),
+      matching: find.byIcon(AppIcons.repeat),
+    );
+    Finder repeatOneButton() => find.descendant(
+      of: find.byType(SelectedQueuePanel),
+      matching: find.byIcon(AppIcons.repeatOne),
     );
 
-    final firstTile = find.ancestor(
-      of: firstTitle,
-      matching: find.byType(QueuedSongTile),
-    );
-    final moveDown = find.descendant(
-      of: firstTile,
-      matching: find.byIcon(Icons.keyboard_arrow_down_rounded),
-    );
-    await tester.tap(moveDown);
-    await tester.pumpAndSettle();
+    expect(repeatButton(), findsOneWidget);
 
-    expect(
-      tester.getCenter(firstTitle).dy,
-      greaterThan(tester.getCenter(secondTitle).dy),
-    );
+    await tester.tap(repeatButton());
+    await tester.pump();
+    expect(repeatButton(), findsOneWidget); // now "all"
+
+    await tester.tap(repeatButton());
+    await tester.pump();
+    expect(repeatOneButton(), findsOneWidget); // "one"
+
+    await tester.tap(repeatOneButton());
+    await tester.pump();
+    expect(repeatButton(), findsOneWidget); // back to "off"
+  });
+
+  testWidgets('shuffle_button_toggles_active_tint', (tester) async {
+    await _pumpBrowser(tester, platform: FakeMusicSdkPlatform());
+    await _openQueueScreen(tester);
+
+    final shuffleButton = find.byIcon(AppIcons.shuffle);
+    expect(shuffleButton, findsOneWidget);
+
+    await tester.tap(shuffleButton);
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
   });
 }

@@ -6,8 +6,7 @@ import '../../source_selection/data/models/music_source.dart';
 /// the flavor of content each source is picked for on the source screen.
 String recommendationSeedQuery(MusicSourceLogoStyle style) {
   return switch (style) {
-    MusicSourceLogoStyle.youtube => 'karaoke việt nam hot',
+    MusicSourceLogoStyle.youtube => 'việt nam hot',
     MusicSourceLogoStyle.soundcloud => 'nhạc remix hot',
-    MusicSourceLogoStyle.mixcloud => 'dj mix set',
   };
 }

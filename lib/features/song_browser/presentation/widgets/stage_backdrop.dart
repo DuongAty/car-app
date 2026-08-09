@@ -34,8 +34,9 @@ class _StageBackdropPainter extends CustomPainter {
         ).createShader(rect),
     );
 
-    // Light beams fanning down from the rig.
-    for (var i = 0; i < 5; i++) {
+    // Light beams fanning down from the rig. Keep them sharp enough to avoid
+    // expensive large blur passes on low-memory TV boxes.
+    for (var i = 0; i < 4; i++) {
       final originX = size.width * (0.12 + i * 0.19);
       final spread = size.width * 0.09;
       final path = Path()
@@ -53,13 +54,12 @@ class _StageBackdropPainter extends CustomPainter {
               const Color(0xFF6EA8FF).withValues(alpha: 0.18),
               const Color(0xFF6EA8FF).withValues(alpha: 0),
             ],
-          ).createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.85))
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
+          ).createShader(Rect.fromLTWH(0, 0, size.width, size.height * 0.85)),
       );
     }
 
     // Out-of-focus lights.
-    for (var i = 0; i < 26; i++) {
+    for (var i = 0; i < 14; i++) {
       final center = Offset(
         random.nextDouble() * size.width,
         random.nextDouble() * size.height * 0.72,
@@ -72,8 +72,7 @@ class _StageBackdropPainter extends CustomPainter {
         center,
         radius,
         Paint()
-          ..color = tint.withValues(alpha: 0.12 + random.nextDouble() * 0.32)
-          ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.7),
+          ..color = tint.withValues(alpha: 0.10 + random.nextDouble() * 0.22),
       );
     }
 

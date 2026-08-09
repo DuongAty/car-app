@@ -1,8 +1,8 @@
-# VietKTV I18n Implementation Plan
+# car-app I18n Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add real Vietnamese/English internationalization to VietKTV with Vietnamese as the default locale and make the `VI/EN` toggle switch the whole app locale.
+**Goal:** Add real Vietnamese/English internationalization to car-app with Vietnamese as the default locale and make the `VI/EN` toggle switch the whole app locale.
 
 **Architecture:** Use Flutter `gen-l10n` with `arb` files, a global Riverpod locale provider, and localized mock-data factories for UI-facing labels. Replace hardcoded strings on the source selection and song browser screens with generated localizations and update `AGENTS.md` so future AI edits follow the same workflow.
 

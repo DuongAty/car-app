@@ -18,6 +18,8 @@ abstract interface class AudioTrackPlayer {
   Future<void> setUrl(String url);
   Future<void> play();
   Future<void> pause();
+  Future<void> seek(Duration position);
+  Future<void> setVolume(double volume);
   Future<void> dispose();
 }
 
@@ -30,7 +32,11 @@ class JustAudioTrackPlayer implements AudioTrackPlayer {
     });
   }
 
-  final AudioPlayer _player = AudioPlayer();
+  // just_audio's built-in interruption handling pauses on a duck event unless
+  // usage is `game`, which is wrong for a car head unit — a navigation prompt
+  // should lower the music, not stop it. PlaybackInterruptionHandler takes
+  // over instead.
+  final AudioPlayer _player = AudioPlayer(handleInterruptions: false);
   final StreamController<void> _completedController =
       StreamController<void>.broadcast();
   late final StreamSubscription<ProcessingState> _completionSubscription;
@@ -55,6 +61,12 @@ class JustAudioTrackPlayer implements AudioTrackPlayer {
 
   @override
   Future<void> pause() => _player.pause();
+
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+
+  @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
 
   @override
   Future<void> dispose() async {
