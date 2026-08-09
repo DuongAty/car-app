@@ -702,4 +702,84 @@ class AppLocalizationsVi extends AppLocalizations {
   @override
   String get licenseOfflineSubtitle =>
       'Kiểm tra kết nối mạng của máy rồi thử lại.';
+
+  @override
+  String get settingsCheckUpdate => 'Kiểm tra cập nhật';
+
+  @override
+  String get settingsUpdateChecking => 'Đang kiểm tra...';
+
+  @override
+  String get settingsUpdateUpToDate => 'Không có bản cập nhật mới';
+
+  @override
+  String settingsUpdateAvailable(String version) {
+    return 'Có bản mới $version';
+  }
+
+  @override
+  String get settingsUpdateInstall => 'Cập nhật';
+
+  @override
+  String settingsUpdateDownloading(int percent) {
+    return 'Đang tải $percent%';
+  }
+
+  @override
+  String get settingsUpdateVerifying => 'Đang kiểm tra tệp...';
+
+  @override
+  String get settingsUpdateInstalling => 'Đang cài đặt...';
+
+  @override
+  String get settingsUpdateInstallRequestedTitle => 'Đã mở trình cài đặt';
+
+  @override
+  String get settingsUpdateInstallRequestedSubtitle =>
+      'Chưa rõ đã cài đặt xong chưa. Nếu ứng dụng chưa được cập nhật, hãy nhấn \"Cài đặt lại\".';
+
+  @override
+  String get settingsUpdateReinstall => 'Cài đặt lại';
+
+  @override
+  String get settingsUpdateInstalledTitle => 'Đã cập nhật xong';
+
+  @override
+  String get settingsUpdateInstalledSubtitle => 'Bản mới đã được cài đặt.';
+
+  @override
+  String get settingsUpdateErrorNetwork =>
+      'Không kiểm tra được. Kiểm tra kết nối mạng rồi thử lại.';
+
+  @override
+  String get settingsUpdateErrorDownload =>
+      'Tải bản cập nhật thất bại. Thử lại.';
+
+  @override
+  String get settingsUpdateErrorChecksum =>
+      'Tệp tải về bị hỏng. Đã xoá, vui lòng thử lại.';
+
+  @override
+  String get settingsUpdateErrorInstall => 'Không mở được trình cài đặt.';
+
+  @override
+  String get settingsUpdateErrorInstallRejected =>
+      'Hệ thống đã từ chối bản cập nhật này. Hãy kiểm tra lại bản mới.';
+
+  @override
+  String get settingsUpdateErrorInstallCancelled =>
+      'Bạn đã huỷ cài đặt. Nhấn để cài lại tệp đã tải.';
+
+  @override
+  String get settingsUpdateErrorPermission =>
+      'Cần cho phép cài ứng dụng từ nguồn này.';
+
+  @override
+  String get settingsUpdateOpenPermission => 'Mở cài đặt';
+
+  @override
+  String get settingsUpdateRetry => 'Thử lại';
+
+  @override
+  String get settingsUpdateDownloadingIndeterminate => 'Đang tải...';
 }

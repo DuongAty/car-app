@@ -49,3 +49,7 @@ app.*.map.json
 
 # Local dart-define secrets (license keys, etc.), never committed
 *.local.env
+
+# Khoá MusicSDK dùng lúc build. Repo này công khai — không bao giờ commit.
+scripts/.music-sdk-key
+scripts/.supabase-admin

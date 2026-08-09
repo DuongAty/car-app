@@ -1393,6 +1393,144 @@ abstract class AppLocalizations {
   /// In vi, this message translates to:
   /// **'Kiểm tra kết nối mạng của máy rồi thử lại.'**
   String get licenseOfflineSubtitle;
+
+  /// No description provided for @settingsCheckUpdate.
+  ///
+  /// In vi, this message translates to:
+  /// **'Kiểm tra cập nhật'**
+  String get settingsCheckUpdate;
+
+  /// No description provided for @settingsUpdateChecking.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang kiểm tra...'**
+  String get settingsUpdateChecking;
+
+  /// No description provided for @settingsUpdateUpToDate.
+  ///
+  /// In vi, this message translates to:
+  /// **'Không có bản cập nhật mới'**
+  String get settingsUpdateUpToDate;
+
+  /// No description provided for @settingsUpdateAvailable.
+  ///
+  /// In vi, this message translates to:
+  /// **'Có bản mới {version}'**
+  String settingsUpdateAvailable(String version);
+
+  /// No description provided for @settingsUpdateInstall.
+  ///
+  /// In vi, this message translates to:
+  /// **'Cập nhật'**
+  String get settingsUpdateInstall;
+
+  /// No description provided for @settingsUpdateDownloading.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang tải {percent}%'**
+  String settingsUpdateDownloading(int percent);
+
+  /// No description provided for @settingsUpdateVerifying.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang kiểm tra tệp...'**
+  String get settingsUpdateVerifying;
+
+  /// No description provided for @settingsUpdateInstalling.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang cài đặt...'**
+  String get settingsUpdateInstalling;
+
+  /// No description provided for @settingsUpdateInstallRequestedTitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đã mở trình cài đặt'**
+  String get settingsUpdateInstallRequestedTitle;
+
+  /// No description provided for @settingsUpdateInstallRequestedSubtitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Chưa rõ đã cài đặt xong chưa. Nếu ứng dụng chưa được cập nhật, hãy nhấn \"Cài đặt lại\".'**
+  String get settingsUpdateInstallRequestedSubtitle;
+
+  /// No description provided for @settingsUpdateReinstall.
+  ///
+  /// In vi, this message translates to:
+  /// **'Cài đặt lại'**
+  String get settingsUpdateReinstall;
+
+  /// No description provided for @settingsUpdateInstalledTitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đã cập nhật xong'**
+  String get settingsUpdateInstalledTitle;
+
+  /// No description provided for @settingsUpdateInstalledSubtitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Bản mới đã được cài đặt.'**
+  String get settingsUpdateInstalledSubtitle;
+
+  /// No description provided for @settingsUpdateErrorNetwork.
+  ///
+  /// In vi, this message translates to:
+  /// **'Không kiểm tra được. Kiểm tra kết nối mạng rồi thử lại.'**
+  String get settingsUpdateErrorNetwork;
+
+  /// No description provided for @settingsUpdateErrorDownload.
+  ///
+  /// In vi, this message translates to:
+  /// **'Tải bản cập nhật thất bại. Thử lại.'**
+  String get settingsUpdateErrorDownload;
+
+  /// No description provided for @settingsUpdateErrorChecksum.
+  ///
+  /// In vi, this message translates to:
+  /// **'Tệp tải về bị hỏng. Đã xoá, vui lòng thử lại.'**
+  String get settingsUpdateErrorChecksum;
+
+  /// No description provided for @settingsUpdateErrorInstall.
+  ///
+  /// In vi, this message translates to:
+  /// **'Không mở được trình cài đặt.'**
+  String get settingsUpdateErrorInstall;
+
+  /// No description provided for @settingsUpdateErrorInstallRejected.
+  ///
+  /// In vi, this message translates to:
+  /// **'Hệ thống đã từ chối bản cập nhật này. Hãy kiểm tra lại bản mới.'**
+  String get settingsUpdateErrorInstallRejected;
+
+  /// No description provided for @settingsUpdateErrorInstallCancelled.
+  ///
+  /// In vi, this message translates to:
+  /// **'Bạn đã huỷ cài đặt. Nhấn để cài lại tệp đã tải.'**
+  String get settingsUpdateErrorInstallCancelled;
+
+  /// No description provided for @settingsUpdateErrorPermission.
+  ///
+  /// In vi, this message translates to:
+  /// **'Cần cho phép cài ứng dụng từ nguồn này.'**
+  String get settingsUpdateErrorPermission;
+
+  /// No description provided for @settingsUpdateOpenPermission.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mở cài đặt'**
+  String get settingsUpdateOpenPermission;
+
+  /// No description provided for @settingsUpdateRetry.
+  ///
+  /// In vi, this message translates to:
+  /// **'Thử lại'**
+  String get settingsUpdateRetry;
+
+  /// No description provided for @settingsUpdateDownloadingIndeterminate.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang tải...'**
+  String get settingsUpdateDownloadingIndeterminate;
 }
 
 class _AppLocalizationsDelegate

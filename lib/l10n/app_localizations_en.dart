@@ -705,4 +705,84 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get licenseOfflineSubtitle =>
       'Check this device\'s network connection and try again.';
+
+  @override
+  String get settingsCheckUpdate => 'Check for updates';
+
+  @override
+  String get settingsUpdateChecking => 'Checking...';
+
+  @override
+  String get settingsUpdateUpToDate => 'No new version available';
+
+  @override
+  String settingsUpdateAvailable(String version) {
+    return 'Version $version available';
+  }
+
+  @override
+  String get settingsUpdateInstall => 'Update';
+
+  @override
+  String settingsUpdateDownloading(int percent) {
+    return 'Downloading $percent%';
+  }
+
+  @override
+  String get settingsUpdateVerifying => 'Verifying file...';
+
+  @override
+  String get settingsUpdateInstalling => 'Installing...';
+
+  @override
+  String get settingsUpdateInstallRequestedTitle => 'Installer opened';
+
+  @override
+  String get settingsUpdateInstallRequestedSubtitle =>
+      'We can\'t tell if it finished. If the app hasn\'t updated, tap \"Reinstall\".';
+
+  @override
+  String get settingsUpdateReinstall => 'Reinstall';
+
+  @override
+  String get settingsUpdateInstalledTitle => 'Update installed';
+
+  @override
+  String get settingsUpdateInstalledSubtitle =>
+      'The new version has been installed.';
+
+  @override
+  String get settingsUpdateErrorNetwork =>
+      'Could not check. Check your connection and try again.';
+
+  @override
+  String get settingsUpdateErrorDownload => 'Download failed. Try again.';
+
+  @override
+  String get settingsUpdateErrorChecksum =>
+      'The downloaded file was corrupt. It has been deleted; please try again.';
+
+  @override
+  String get settingsUpdateErrorInstall => 'Could not open the installer.';
+
+  @override
+  String get settingsUpdateErrorInstallRejected =>
+      'The system rejected this update. Check for a new version.';
+
+  @override
+  String get settingsUpdateErrorInstallCancelled =>
+      'You cancelled the installation. Tap to install the downloaded file again.';
+
+  @override
+  String get settingsUpdateErrorPermission =>
+      'Allow installing apps from this source first.';
+
+  @override
+  String get settingsUpdateOpenPermission => 'Open settings';
+
+  @override
+  String get settingsUpdateRetry => 'Try again';
+
+  @override
+  String get settingsUpdateDownloadingIndeterminate => 'Downloading...';
 }

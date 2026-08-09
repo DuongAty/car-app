@@ -48,6 +48,14 @@ dependencies:
   material_symbols_icons: ^4.2960.0
   speech_to_text: ^7.4.0
   supabase_flutter: ^2.16.0
+  # SHA-256 for the update download. Pure Dart, so verification can be tested
+  # in `flutter test` — doing the digest natively would make the one guard
+  # that matters most untestable.
+  crypto: ^3.0.6
+  # AccumulatorSink, used to pull the finished digest out of the chunked
+  # SHA-256 conversion. Arrives transitively with crypto, but the analyzer
+  # (depend_on_referenced_packages) requires it as a direct dependency too.
+  convert: ^3.1.2
   audio_session: ^0.2.4
   audio_service: ^0.18.19
 dev_dependencies:

@@ -1,12 +1,23 @@
 package com.example.viet_ktv
 
+import android.app.PendingIntent
 import android.content.Intent
+import android.content.IntentSender
+import android.content.pm.PackageInstaller
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.os.StatFs
+import android.provider.Settings
+import android.util.Log
 import com.ryanheise.audioservice.AudioServiceActivity
+import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -15,6 +26,17 @@ import org.json.JSONObject
 import vn.kod.vkmusic.VkMusicLib
 
 class MainActivity : AudioServiceActivity() {
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    /**
+     * Staging a ~145MB APK into an install session is far slower than the ANR
+     * window on a low-cost box with slow eMMC, so it never runs on the
+     * platform thread.
+     */
+    private val installExecutor: ExecutorService = Executors.newSingleThreadExecutor()
+
+    private var systemChannel: MethodChannel? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -22,10 +44,22 @@ class MainActivity : AudioServiceActivity() {
             flutterEngine.dartExecutor.binaryMessenger,
             CHANNEL_NAME,
         ).setMethodCallHandler(::onMethodCall)
-        MethodChannel(
+        val system = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             SYSTEM_CHANNEL_NAME,
-        ).setMethodCallHandler(::onSystemMethodCall)
+        )
+        system.setMethodCallHandler(::onSystemMethodCall)
+        systemChannel = system
+        // Lets InstallResultReceiver report the install outcome back to Dart.
+        InstallStatusBridge.attach(system)
+    }
+
+    override fun onDestroy() {
+        systemChannel?.let(InstallStatusBridge::detach)
+        systemChannel = null
+        // Lets an in-flight session copy finish; refuses new ones.
+        installExecutor.shutdown()
+        super.onDestroy()
     }
 
     private fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -43,6 +77,10 @@ class MainActivity : AudioServiceActivity() {
             "restartApp" -> restartApp(result)
             "shutdownDevice" -> shutdownDevice(result)
             "requestNotificationPermission" -> requestNotificationPermission(result)
+            "getUpdateCacheDir" -> result.success(updateCacheDir().absolutePath)
+            "canInstallPackages" -> result.success(packageManager.canRequestPackageInstalls())
+            "openInstallPermissionSettings" -> openInstallPermissionSettings(result)
+            "installApk" -> installApk(call, result)
             else -> result.notImplemented()
         }
     }
@@ -234,6 +272,7 @@ class MainActivity : AudioServiceActivity() {
             "deviceName" to "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
             "androidVersion" to "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
             "appVersion" to appVersion(),
+            "appVersionCode" to appVersionCode(),
             "storageSummary" to storageSummary(),
         )
     }
@@ -259,6 +298,147 @@ class MainActivity : AudioServiceActivity() {
         } catch (_: Throwable) {
             "1.0.0"
         }
+    }
+
+    private fun appVersionCode(): Long {
+        return try {
+            val info = packageManager.getPackageInfo(packageName, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                info.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                info.versionCode.toLong()
+            }
+        } catch (_: Throwable) {
+            0L
+        }
+    }
+
+    /** Private cache dir, so no storage permission is involved and Android
+     *  reclaims the space on its own. */
+    private fun updateCacheDir(): File {
+        val dir = File(cacheDir, "updates")
+        dir.mkdirs()
+        return dir
+    }
+
+    private fun openInstallPermissionSettings(result: MethodChannel.Result) {
+        try {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:$packageName"),
+            )
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            result.success(true)
+        } catch (error: Throwable) {
+            result.error(
+                "install_settings_unavailable",
+                error.message ?: "Cannot open the unknown-sources screen.",
+                null,
+            )
+        }
+    }
+
+    private fun installApk(call: MethodCall, result: MethodChannel.Result) {
+        val path = call.argument<String>("path")
+        if (path.isNullOrEmpty()) {
+            result.error("install_invalid_path", "A file path is required.", null)
+            return
+        }
+        val apk = File(path)
+        if (!apk.exists()) {
+            // Android can evict the cache dir between download and install.
+            // Dart treats this code as "this file is gone", not as a retry.
+            result.error("install_file_missing", "No file at $path.", null)
+            return
+        }
+        installExecutor.execute {
+            try {
+                stageAndCommit(apk)
+                // Success here means the session was committed, i.e. the
+                // status callback is on its way — not that anything is
+                // installed. InstallResultReceiver reports the real outcome.
+                replyOnMain { result.success(true) }
+            } catch (error: Throwable) {
+                Log.e(TAG, "Staging the update APK failed.", error)
+                replyOnMain {
+                    result.error(
+                        "install_failed",
+                        error.message ?: "PackageInstaller rejected the session.",
+                        null,
+                    )
+                }
+            }
+        }
+    }
+
+    /** MethodChannel results must be delivered on the platform thread. */
+    private fun replyOnMain(reply: () -> Unit) {
+        mainHandler.post {
+            try {
+                reply()
+            } catch (error: Throwable) {
+                Log.w(TAG, "Could not deliver the install result to Dart.", error)
+            }
+        }
+    }
+
+    /**
+     * Copies [apk] into a PackageInstaller session and commits it. Runs on
+     * [installExecutor], never on the platform thread.
+     *
+     * commit() does not install anything for a non-privileged installer: it
+     * fires the supplied IntentSender with STATUS_PENDING_USER_ACTION and the
+     * real system confirmation screen nested inside it, which
+     * [InstallResultReceiver] starts.
+     */
+    private fun stageAndCommit(apk: File) {
+        val installer = packageManager.packageInstaller
+        val params = PackageInstaller.SessionParams(
+            PackageInstaller.SessionParams.MODE_FULL_INSTALL,
+        )
+        params.setAppPackageName(packageName)
+        // Lets the system reserve the space (and refuse up front when there
+        // is none) instead of failing part-way through a 145MB copy.
+        params.setSize(apk.length())
+        val sessionId = installer.createSession(params)
+        var committed = false
+        try {
+            installer.openSession(sessionId).use { session ->
+                session.openWrite(SESSION_FILE_NAME, 0, apk.length()).use { out ->
+                    apk.inputStream().use { input -> input.copyTo(out) }
+                    session.fsync(out)
+                }
+                session.commit(installStatusSender(sessionId))
+                committed = true
+            }
+        } finally {
+            if (!committed) {
+                // An orphaned session keeps holding the staged copy on disk.
+                try {
+                    installer.abandonSession(sessionId)
+                } catch (error: Throwable) {
+                    Log.w(TAG, "Could not abandon install session $sessionId.", error)
+                }
+            }
+        }
+    }
+
+    private fun installStatusSender(sessionId: Int): IntentSender {
+        val intent = Intent(applicationContext, InstallResultReceiver::class.java)
+            .setAction(InstallStatusBridge.ACTION)
+            .setPackage(packageName)
+        var flags = PendingIntent.FLAG_UPDATE_CURRENT
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // The system fills EXTRA_STATUS/EXTRA_INTENT in, so the
+            // PendingIntent has to stay mutable. Below API 31 that is the
+            // default and the flag does not exist.
+            flags = flags or PendingIntent.FLAG_MUTABLE
+        }
+        return PendingIntent
+            .getBroadcast(applicationContext, sessionId, intent, flags)
+            .intentSender
     }
 
     private fun storageSummary(): String {
@@ -336,6 +516,8 @@ class MainActivity : AudioServiceActivity() {
         private const val SOURCE_YOUTUBE = "youtube"
         private const val SOURCE_SOUNDCLOUD = "soundcloud"
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
+        private const val SESSION_FILE_NAME = "youcar"
+        private const val TAG = "AppUpdate"
 
         private var isInitialized: Boolean = false
     }

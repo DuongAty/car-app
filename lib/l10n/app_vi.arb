@@ -276,5 +276,42 @@
   "licenseRetry": "Kiểm tra lại",
   "licenseOfflineTitle": "Không có kết nối mạng",
   "seekBadgeStep": "10s",
-  "licenseOfflineSubtitle": "Kiểm tra kết nối mạng của máy rồi thử lại."
+  "licenseOfflineSubtitle": "Kiểm tra kết nối mạng của máy rồi thử lại.",
+  "settingsCheckUpdate": "Kiểm tra cập nhật",
+  "settingsUpdateChecking": "Đang kiểm tra...",
+  "settingsUpdateUpToDate": "Không có bản cập nhật mới",
+  "settingsUpdateAvailable": "Có bản mới {version}",
+  "@settingsUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateInstall": "Cập nhật",
+  "settingsUpdateDownloading": "Đang tải {percent}%",
+  "@settingsUpdateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsUpdateVerifying": "Đang kiểm tra tệp...",
+  "settingsUpdateInstalling": "Đang cài đặt...",
+  "settingsUpdateInstallRequestedTitle": "Đã mở trình cài đặt",
+  "settingsUpdateInstallRequestedSubtitle": "Chưa rõ đã cài đặt xong chưa. Nếu ứng dụng chưa được cập nhật, hãy nhấn \"Cài đặt lại\".",
+  "settingsUpdateReinstall": "Cài đặt lại",
+  "settingsUpdateInstalledTitle": "Đã cập nhật xong",
+  "settingsUpdateInstalledSubtitle": "Bản mới đã được cài đặt.",
+  "settingsUpdateErrorNetwork": "Không kiểm tra được. Kiểm tra kết nối mạng rồi thử lại.",
+  "settingsUpdateErrorDownload": "Tải bản cập nhật thất bại. Thử lại.",
+  "settingsUpdateErrorChecksum": "Tệp tải về bị hỏng. Đã xoá, vui lòng thử lại.",
+  "settingsUpdateErrorInstall": "Không mở được trình cài đặt.",
+  "settingsUpdateErrorInstallRejected": "Hệ thống đã từ chối bản cập nhật này. Hãy kiểm tra lại bản mới.",
+  "settingsUpdateErrorInstallCancelled": "Bạn đã huỷ cài đặt. Nhấn để cài lại tệp đã tải.",
+  "settingsUpdateErrorPermission": "Cần cho phép cài ứng dụng từ nguồn này.",
+  "settingsUpdateOpenPermission": "Mở cài đặt",
+  "settingsUpdateRetry": "Thử lại",
+  "settingsUpdateDownloadingIndeterminate": "Đang tải..."
 }

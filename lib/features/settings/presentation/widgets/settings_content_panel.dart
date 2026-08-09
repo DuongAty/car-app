@@ -16,6 +16,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../routes/app_router.dart';
+import '../../../app_update/presentation/widgets/update_section.dart';
 import '../../data/models/app_settings.dart';
 import '../providers/settings_controller.dart';
 import 'settings_copy.dart';
@@ -326,6 +327,8 @@ class SettingsContentPanel extends ConsumerWidget {
     return [
       _SectionTitle(l10n.settingsSystem),
       const _SystemInfoRows(),
+      const SizedBox(height: AppSpacing.lg),
+      const UpdateSection(),
       const SizedBox(height: AppSpacing.lg),
       _NavigationRow(
         icon: AppIcons.deviceHub,

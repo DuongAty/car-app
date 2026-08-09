@@ -276,5 +276,42 @@
   "licenseRetry": "Check again",
   "licenseOfflineTitle": "No network connection",
   "seekBadgeStep": "10s",
-  "licenseOfflineSubtitle": "Check this device's network connection and try again."
+  "licenseOfflineSubtitle": "Check this device's network connection and try again.",
+  "settingsCheckUpdate": "Check for updates",
+  "settingsUpdateChecking": "Checking...",
+  "settingsUpdateUpToDate": "No new version available",
+  "settingsUpdateAvailable": "Version {version} available",
+  "@settingsUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsUpdateInstall": "Update",
+  "settingsUpdateDownloading": "Downloading {percent}%",
+  "@settingsUpdateDownloading": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsUpdateVerifying": "Verifying file...",
+  "settingsUpdateInstalling": "Installing...",
+  "settingsUpdateInstallRequestedTitle": "Installer opened",
+  "settingsUpdateInstallRequestedSubtitle": "We can't tell if it finished. If the app hasn't updated, tap \"Reinstall\".",
+  "settingsUpdateReinstall": "Reinstall",
+  "settingsUpdateInstalledTitle": "Update installed",
+  "settingsUpdateInstalledSubtitle": "The new version has been installed.",
+  "settingsUpdateErrorNetwork": "Could not check. Check your connection and try again.",
+  "settingsUpdateErrorDownload": "Download failed. Try again.",
+  "settingsUpdateErrorChecksum": "The downloaded file was corrupt. It has been deleted; please try again.",
+  "settingsUpdateErrorInstall": "Could not open the installer.",
+  "settingsUpdateErrorInstallRejected": "The system rejected this update. Check for a new version.",
+  "settingsUpdateErrorInstallCancelled": "You cancelled the installation. Tap to install the downloaded file again.",
+  "settingsUpdateErrorPermission": "Allow installing apps from this source first.",
+  "settingsUpdateOpenPermission": "Open settings",
+  "settingsUpdateRetry": "Try again",
+  "settingsUpdateDownloadingIndeterminate": "Downloading..."
 }
