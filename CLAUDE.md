@@ -8,7 +8,7 @@ Act as a senior Flutter engineer delivering production Android apps. Build UI wi
 
 ## Target Platform
 
-Android first, must support Android 10 (API 29) and above. The primary deployment targets are low-cost Android TV/karaoke boxes with 2GB RAM and Android car head units / in-car entertainment screens. All UI must behave correctly on Android box displays, Android car screens, and common Android phone sizes, handle small and large screens gracefully, and avoid layout overflow — landscape is the primary karaoke layout, since focus/D-pad navigation, remote/control buttons, touch, and mixed input are first-class interactions.
+Android first, must support Android 8.0 (API 26) and above. The primary deployment targets are low-cost Android TV/karaoke boxes with 2GB RAM and Android car head units / in-car entertainment screens. All UI must behave correctly on Android box displays, Android car screens, and common Android phone sizes, handle small and large screens gracefully, and avoid layout overflow — landscape is the primary karaoke layout, since focus/D-pad navigation, remote/control buttons, touch, and mixed input are first-class interactions.
 
 Do not treat this repository as a generic mobile-first Flutter app. Phones are supported for compatibility and testing, but product and performance decisions should prioritize karaoke sessions on Android box hardware and Android car screens.
 

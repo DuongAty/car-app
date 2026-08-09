@@ -19,10 +19,10 @@ set -euo pipefail
 
 REPO="DuongAty/car-app"
 
-# Dấu vân tay chứng chỉ của khoá đã ký các bản đang chạy trên máy khách.
+# Dấu vân tay chứng chỉ của keystore release (~/keys/youcar-release.jks).
 # Android chỉ cho cài đè khi chữ ký trùng; lệch là khách phải gỡ app, mất
 # sạch dữ liệu và mất luôn trạng thái kích hoạt.
-EXPECTED_FINGERPRINT="92:B3:8A:F1:5D:16:28:99:E1:FA:30:CD:9C:04:A5:53:00:C0:DF:4B:11:39:9B:C2:12:50:82:98:B6:5E:C7:60"
+EXPECTED_FINGERPRINT="9B:DC:D1:F0:00:AD:F2:78:33:1C:80:8A:9A:6B:B6:97:0B:F0:10:23:3D:CE:21:3E:E2:9C:CB:4D:46:FA:1B:36"
 
 die()  { printf '\n✗ %s\n' "$*" >&2; exit 1; }
 step() { printf '\n── %s\n' "$*"; }
@@ -70,6 +70,7 @@ ANON_KEY="$(grep -o 'eyJ[A-Za-z0-9._-]*' "$CFG" | head -1)"
 step "Phiên bản"
 
 CURRENT="$(grep '^version:' pubspec.yaml | awk '{print $2}')"
+CURRENT_CODE="${CURRENT##*+}"
 echo "   pubspec đang là: $CURRENT"
 
 # Bản đang phát hành trên máy chủ — dùng để chặn việc phát hành lùi.
@@ -87,17 +88,29 @@ VERSION_NAME="${1:-}"
 VERSION_CODE="${2:-}"
 NOTES="${3:-}"
 
+# Ngưỡng thấp nhất chấp nhận được là lớn hơn CẢ HAI: bản đã phát hành, và
+# bản đang nằm trong pubspec (tức bản bạn vừa build và cài lên máy). Chỉ so
+# với bản đã phát hành là chưa đủ — lần phát hành đầu tiên, máy chủ trống nên
+# ngưỡng là 0, và một versionCode bằng đúng bản đang cài sẽ lọt qua rồi máy
+# báo "đã mới nhất" mãi mãi.
+FLOOR="$PUBLISHED"
+[ "$CURRENT_CODE" -gt "$FLOOR" ] 2>/dev/null && FLOOR="$CURRENT_CODE"
+NEXT=$((FLOOR + 1))
+
 [ -n "$VERSION_NAME" ] || read -rp "   versionName mới (vd 1.0.1): " VERSION_NAME
-[ -n "$VERSION_CODE" ] || read -rp "   versionCode mới (vd $((PUBLISHED + 1))): " VERSION_CODE
+[ -n "$VERSION_CODE" ] || read -rp "   versionCode mới (thấp nhất $NEXT): " VERSION_CODE
 [ -n "$NOTES" ]        || read -rp "   Ghi chú thay đổi (hiện trong app): " NOTES
 
 [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die "versionName phải dạng 1.0.1, đang là '$VERSION_NAME'."
 [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]                 || die "versionCode phải là số nguyên, đang là '$VERSION_CODE'."
 [ -n "$NOTES" ] || die "Ghi chú không được để trống — nó hiện nguyên văn trong app."
 
-[ "$VERSION_CODE" -gt "$PUBLISHED" ] || die "versionCode $VERSION_CODE không lớn hơn bản đang phát hành ($PUBLISHED).
-   App so sánh bằng versionCode và không bao giờ hạ cấp, nên bản này sẽ
-   không bao giờ được mời cài. Muốn thay nội dung bản cũ thì phát hành số cao hơn."
+[ "$VERSION_CODE" -gt "$FLOOR" ] || die "versionCode $VERSION_CODE phải lớn hơn $FLOOR.
+   Đã phát hành: $PUBLISHED · pubspec hiện tại: $CURRENT_CODE · thấp nhất chấp nhận: $NEXT
+
+   App so sánh bằng versionCode, KHÔNG phải tên phiên bản, và không bao giờ
+   hạ cấp. Đặt số bằng hoặc thấp hơn bản đang cài thì dù tên có là 1.0.2 hay
+   2.0.0, máy vẫn báo 'không có bản cập nhật mới' — mãi mãi."
 
 TAG="v$VERSION_NAME"
 APK="youcar-$VERSION_NAME.apk"
