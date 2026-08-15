@@ -317,5 +317,22 @@
   "settingsUpdateErrorPermission": "Allow installing apps from this source first.",
   "settingsUpdateOpenPermission": "Open settings",
   "settingsUpdateRetry": "Try again",
-  "settingsUpdateDownloadingIndeterminate": "Downloading..."
+  "settingsUpdateDownloadingIndeterminate": "Downloading...",
+  "remotePairingTitle": "Connect a phone",
+  "remotePairingSubtitle": "Open WeTube Remote on your phone, then scan the QR code or type the 6-digit code below.",
+  "remotePairingCodeLabel": "Pairing code",
+  "remotePairingExpiresIn": "Code valid for {time}",
+  "remotePairingExpired": "The code has expired. Request a new one.",
+  "remotePairingNewCode": "New code",
+  "remotePairingRequesting": "Requesting a code...",
+  "remotePairingStatusTitle": "Connection status",
+  "remotePairingPhoneConnected": "Phone connected",
+  "remotePairingPhoneOffline": "Phone is offline",
+  "remotePairingNotPaired": "No phone paired yet",
+  "remotePairingDisconnect": "Disconnect phone",
+  "remotePairingDisconnectHint": "The paired phone loses control immediately.",
+  "remotePairingHint": "The phone and the head unit do not need to share a Wi-Fi network.",
+  "remotePairingErrorNetwork": "Could not reach the server. Check the network and try again.",
+  "remotePairingErrorBackend": "The server rejected the request. Please try again.",
+  "remotePairingErrorMalformed": "The server returned unexpected data."
 }

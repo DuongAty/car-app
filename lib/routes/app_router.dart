@@ -5,6 +5,7 @@ import '../features/favorites/presentation/pages/favorites_page.dart';
 import '../features/history/presentation/pages/history_page.dart';
 import '../features/license/presentation/pages/license_gate_page.dart';
 import '../features/queue/presentation/pages/selected_queue_page.dart';
+import '../features/remote/presentation/pages/pairing_page.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
 import '../features/settings/data/models/app_settings.dart';
 import '../features/song_browser/presentation/pages/song_browser_page.dart';
@@ -37,6 +38,7 @@ abstract final class AppRouter {
   static const String favorites = '/favorites';
   static const String history = '/history';
   static const String settings = '/settings';
+  static const String pairing = '/pairing';
 
   static Route<dynamic> onGenerateRoute(RouteSettings routeSettings) {
     switch (routeSettings.name) {
@@ -91,6 +93,11 @@ abstract final class AppRouter {
       case history:
         return _FadePageRoute<void>(
           builder: (_) => const HistoryPage(),
+          settings: routeSettings,
+        );
+      case pairing:
+        return _FadePageRoute<void>(
+          builder: (_) => const PairingPage(),
           settings: routeSettings,
         );
       case settings:

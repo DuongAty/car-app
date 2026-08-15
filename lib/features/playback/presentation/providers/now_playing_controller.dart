@@ -716,11 +716,47 @@ class NowPlayingController extends StateNotifier<NowPlayingState> {
   /// what the icon promises and gives a second one-press route out of
   /// fullscreen into a layout that still has app chrome.
   void toggleWide() {
+    // A press here is the user taking the layout back into their own hands, so
+    // the phone must not undo it later.
+    _wideFromRemote = false;
     _setMode(
       state.mode == PlayerViewMode.normal
           ? PlayerViewMode.wide
           : PlayerViewMode.normal,
     );
+  }
+
+  /// True while the side panel is collapsed because a phone joined, not
+  /// because the user pressed the panel button.
+  bool _wideFromRemote = false;
+
+  /// Collapses the search column while a phone is driving, and restores it
+  /// when the phone leaves.
+  ///
+  /// Once a phone is connected, typing happens on the phone keyboard — the
+  /// on-screen search column is dead weight in front of the video. This only
+  /// moves between [PlayerViewMode.normal] and [PlayerViewMode.wide]:
+  /// fullscreen is left alone (it is already a more committed choice than
+  /// anything the phone should override), and the restore only fires when the
+  /// collapse came from here, so a user who pressed the panel button keeps the
+  /// layout they chose.
+  void setRemoteBrowsingActive(bool active) {
+    if (active) {
+      if (state.mode != PlayerViewMode.normal) {
+        return;
+      }
+      _wideFromRemote = true;
+      _setMode(PlayerViewMode.wide);
+      return;
+    }
+
+    if (!_wideFromRemote) {
+      return;
+    }
+    _wideFromRemote = false;
+    if (state.mode == PlayerViewMode.wide) {
+      _setMode(PlayerViewMode.normal);
+    }
   }
 
   void enterFullscreen() {

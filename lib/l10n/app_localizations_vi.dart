@@ -785,4 +785,63 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get settingsUpdateDownloadingIndeterminate => 'Đang tải...';
+
+  @override
+  String get remotePairingTitle => 'Kết nối điện thoại';
+
+  @override
+  String get remotePairingSubtitle =>
+      'Mở ứng dụng WeTube Remote trên điện thoại, quét mã QR hoặc nhập mã 6 số bên dưới.';
+
+  @override
+  String get remotePairingCodeLabel => 'Mã ghép đôi';
+
+  @override
+  String remotePairingExpiresIn(String time) {
+    return 'Mã còn hiệu lực $time';
+  }
+
+  @override
+  String get remotePairingExpired => 'Mã đã hết hạn. Hãy cấp mã mới.';
+
+  @override
+  String get remotePairingNewCode => 'Cấp mã mới';
+
+  @override
+  String get remotePairingRequesting => 'Đang lấy mã...';
+
+  @override
+  String get remotePairingStatusTitle => 'Trạng thái kết nối';
+
+  @override
+  String get remotePairingPhoneConnected => 'Đã kết nối điện thoại';
+
+  @override
+  String get remotePairingPhoneOffline => 'Điện thoại đang ngoại tuyến';
+
+  @override
+  String get remotePairingNotPaired => 'Chưa ghép đôi với điện thoại nào';
+
+  @override
+  String get remotePairingDisconnect => 'Ngắt kết nối điện thoại';
+
+  @override
+  String get remotePairingDisconnectHint =>
+      'Điện thoại đang ghép đôi sẽ mất quyền điều khiển ngay lập tức.';
+
+  @override
+  String get remotePairingHint =>
+      'Điện thoại và đầu xe không cần chung một mạng Wi-Fi.';
+
+  @override
+  String get remotePairingErrorNetwork =>
+      'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
+
+  @override
+  String get remotePairingErrorBackend =>
+      'Máy chủ từ chối yêu cầu. Vui lòng thử lại.';
+
+  @override
+  String get remotePairingErrorMalformed =>
+      'Máy chủ trả về dữ liệu không hợp lệ.';
 }

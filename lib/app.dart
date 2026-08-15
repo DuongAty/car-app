@@ -6,6 +6,7 @@ import 'core/providers/locale_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'features/history/presentation/providers/history_controller.dart';
 import 'features/playback/presentation/providers/background_playback_provider.dart';
+import 'features/remote/presentation/providers/remote_session_provider.dart';
 import 'l10n/app_localizations.dart';
 import 'routes/app_router.dart';
 
@@ -22,6 +23,9 @@ class VietKtvApp extends ConsumerWidget {
     // Keeps the media notification, audio-focus handling, and background
     // lifecycle behaviour alive for the whole app lifetime.
     ref.watch(backgroundPlaybackProvider);
+    // Phone remote. Costs nothing until a pairing id has been saved: with none
+    // it opens no socket, starts no publisher, and schedules no timers.
+    ref.watch(remoteSessionProvider);
 
     return MaterialApp(
       onGenerateTitle: (context) =>

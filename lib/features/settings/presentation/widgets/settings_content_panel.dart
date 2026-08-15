@@ -156,7 +156,7 @@ class SettingsContentPanel extends ConsumerWidget {
         icon: AppIcons.connectPhone,
         title: l10n.settingsDeviceQr,
         subtitle: l10n.settingsDeviceHint,
-        onPressed: () => _showSnack(context, l10n.settingsActionUnavailable),
+        onPressed: () => Navigator.of(context).pushNamed(AppRouter.pairing),
       ),
       _InfoRow(
         icon: AppIcons.deviceHub,

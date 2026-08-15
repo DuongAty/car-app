@@ -1537,6 +1537,108 @@ abstract class AppLocalizations {
   /// In vi, this message translates to:
   /// **'Đang tải...'**
   String get settingsUpdateDownloadingIndeterminate;
+
+  /// No description provided for @remotePairingTitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Kết nối điện thoại'**
+  String get remotePairingTitle;
+
+  /// No description provided for @remotePairingSubtitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mở ứng dụng WeTube Remote trên điện thoại, quét mã QR hoặc nhập mã 6 số bên dưới.'**
+  String get remotePairingSubtitle;
+
+  /// No description provided for @remotePairingCodeLabel.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mã ghép đôi'**
+  String get remotePairingCodeLabel;
+
+  /// No description provided for @remotePairingExpiresIn.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mã còn hiệu lực {time}'**
+  String remotePairingExpiresIn(String time);
+
+  /// No description provided for @remotePairingExpired.
+  ///
+  /// In vi, this message translates to:
+  /// **'Mã đã hết hạn. Hãy cấp mã mới.'**
+  String get remotePairingExpired;
+
+  /// No description provided for @remotePairingNewCode.
+  ///
+  /// In vi, this message translates to:
+  /// **'Cấp mã mới'**
+  String get remotePairingNewCode;
+
+  /// No description provided for @remotePairingRequesting.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đang lấy mã...'**
+  String get remotePairingRequesting;
+
+  /// No description provided for @remotePairingStatusTitle.
+  ///
+  /// In vi, this message translates to:
+  /// **'Trạng thái kết nối'**
+  String get remotePairingStatusTitle;
+
+  /// No description provided for @remotePairingPhoneConnected.
+  ///
+  /// In vi, this message translates to:
+  /// **'Đã kết nối điện thoại'**
+  String get remotePairingPhoneConnected;
+
+  /// No description provided for @remotePairingPhoneOffline.
+  ///
+  /// In vi, this message translates to:
+  /// **'Điện thoại đang ngoại tuyến'**
+  String get remotePairingPhoneOffline;
+
+  /// No description provided for @remotePairingNotPaired.
+  ///
+  /// In vi, this message translates to:
+  /// **'Chưa ghép đôi với điện thoại nào'**
+  String get remotePairingNotPaired;
+
+  /// No description provided for @remotePairingDisconnect.
+  ///
+  /// In vi, this message translates to:
+  /// **'Ngắt kết nối điện thoại'**
+  String get remotePairingDisconnect;
+
+  /// No description provided for @remotePairingDisconnectHint.
+  ///
+  /// In vi, this message translates to:
+  /// **'Điện thoại đang ghép đôi sẽ mất quyền điều khiển ngay lập tức.'**
+  String get remotePairingDisconnectHint;
+
+  /// No description provided for @remotePairingHint.
+  ///
+  /// In vi, this message translates to:
+  /// **'Điện thoại và đầu xe không cần chung một mạng Wi-Fi.'**
+  String get remotePairingHint;
+
+  /// No description provided for @remotePairingErrorNetwork.
+  ///
+  /// In vi, this message translates to:
+  /// **'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.'**
+  String get remotePairingErrorNetwork;
+
+  /// No description provided for @remotePairingErrorBackend.
+  ///
+  /// In vi, this message translates to:
+  /// **'Máy chủ từ chối yêu cầu. Vui lòng thử lại.'**
+  String get remotePairingErrorBackend;
+
+  /// No description provided for @remotePairingErrorMalformed.
+  ///
+  /// In vi, this message translates to:
+  /// **'Máy chủ trả về dữ liệu không hợp lệ.'**
+  String get remotePairingErrorMalformed;
 }
 
 class _AppLocalizationsDelegate

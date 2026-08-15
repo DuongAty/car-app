@@ -788,4 +788,63 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsUpdateDownloadingIndeterminate => 'Downloading...';
+
+  @override
+  String get remotePairingTitle => 'Connect a phone';
+
+  @override
+  String get remotePairingSubtitle =>
+      'Open WeTube Remote on your phone, then scan the QR code or type the 6-digit code below.';
+
+  @override
+  String get remotePairingCodeLabel => 'Pairing code';
+
+  @override
+  String remotePairingExpiresIn(String time) {
+    return 'Code valid for $time';
+  }
+
+  @override
+  String get remotePairingExpired => 'The code has expired. Request a new one.';
+
+  @override
+  String get remotePairingNewCode => 'New code';
+
+  @override
+  String get remotePairingRequesting => 'Requesting a code...';
+
+  @override
+  String get remotePairingStatusTitle => 'Connection status';
+
+  @override
+  String get remotePairingPhoneConnected => 'Phone connected';
+
+  @override
+  String get remotePairingPhoneOffline => 'Phone is offline';
+
+  @override
+  String get remotePairingNotPaired => 'No phone paired yet';
+
+  @override
+  String get remotePairingDisconnect => 'Disconnect phone';
+
+  @override
+  String get remotePairingDisconnectHint =>
+      'The paired phone loses control immediately.';
+
+  @override
+  String get remotePairingHint =>
+      'The phone and the head unit do not need to share a Wi-Fi network.';
+
+  @override
+  String get remotePairingErrorNetwork =>
+      'Could not reach the server. Check the network and try again.';
+
+  @override
+  String get remotePairingErrorBackend =>
+      'The server rejected the request. Please try again.';
+
+  @override
+  String get remotePairingErrorMalformed =>
+      'The server returned unexpected data.';
 }

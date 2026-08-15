@@ -58,6 +58,13 @@ dependencies:
   convert: ^3.1.2
   audio_session: ^0.2.4
   audio_service: ^0.18.19
+  # Giao thức điều khiển từ xa dùng chung với app điện thoại. Dart thuần, không
+  # kéo theo Flutter — sửa ở một chỗ là hai app cùng đổi.
+  remote_protocol:
+    path: ../remote_protocol
+  # Chỉ để dựng ma trận QR (Dart thuần). Việc vẽ do `PairingQrView` tự làm
+  # bằng CustomPainter, nên không cần `qr_flutter` kéo thêm một lớp widget nữa.
+  qr: ^3.0.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

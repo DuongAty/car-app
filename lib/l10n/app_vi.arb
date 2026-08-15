@@ -317,5 +317,27 @@
   "settingsUpdateErrorPermission": "Cần cho phép cài ứng dụng từ nguồn này.",
   "settingsUpdateOpenPermission": "Mở cài đặt",
   "settingsUpdateRetry": "Thử lại",
-  "settingsUpdateDownloadingIndeterminate": "Đang tải..."
+  "settingsUpdateDownloadingIndeterminate": "Đang tải...",
+  "remotePairingTitle": "Kết nối điện thoại",
+  "remotePairingSubtitle": "Mở ứng dụng WeTube Remote trên điện thoại, quét mã QR hoặc nhập mã 6 số bên dưới.",
+  "remotePairingCodeLabel": "Mã ghép đôi",
+  "remotePairingExpiresIn": "Mã còn hiệu lực {time}",
+  "@remotePairingExpiresIn": {
+    "placeholders": {
+      "time": { "type": "String" }
+    }
+  },
+  "remotePairingExpired": "Mã đã hết hạn. Hãy cấp mã mới.",
+  "remotePairingNewCode": "Cấp mã mới",
+  "remotePairingRequesting": "Đang lấy mã...",
+  "remotePairingStatusTitle": "Trạng thái kết nối",
+  "remotePairingPhoneConnected": "Đã kết nối điện thoại",
+  "remotePairingPhoneOffline": "Điện thoại đang ngoại tuyến",
+  "remotePairingNotPaired": "Chưa ghép đôi với điện thoại nào",
+  "remotePairingDisconnect": "Ngắt kết nối điện thoại",
+  "remotePairingDisconnectHint": "Điện thoại đang ghép đôi sẽ mất quyền điều khiển ngay lập tức.",
+  "remotePairingHint": "Điện thoại và đầu xe không cần chung một mạng Wi-Fi.",
+  "remotePairingErrorNetwork": "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.",
+  "remotePairingErrorBackend": "Máy chủ từ chối yêu cầu. Vui lòng thử lại.",
+  "remotePairingErrorMalformed": "Máy chủ trả về dữ liệu không hợp lệ."
 }
