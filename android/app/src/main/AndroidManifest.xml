@@ -16,7 +16,7 @@
          canInstallPackages()/openInstallPermissionSettings() lo phần đó. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <application
-        android:label="youcar"
+        android:label="WeTube"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true">

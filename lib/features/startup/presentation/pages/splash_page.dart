@@ -41,7 +41,6 @@ class _SplashPageState extends State<SplashPage> {
     final textTheme = Theme.of(context).textTheme;
 
     return KaraokeShell(
-      topBar: const SizedBox.shrink(),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -72,7 +71,6 @@ class _SplashPageState extends State<SplashPage> {
           ],
         ),
       ),
-      bottomBar: const SizedBox.shrink(),
     );
   }
 }

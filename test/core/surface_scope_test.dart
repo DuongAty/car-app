@@ -18,15 +18,18 @@ import '../support/fake_local_storage_service.dart';
 import '../support/fake_music_sdk_platform.dart';
 
 /// Counts panel-level surfaces only. Small repeated chips use
-/// LiquidGlassDetail.simple and must not be swept up by these assertions.
+/// LiquidGlassDetail.simple and must not be swept up by these assertions;
+/// everything else (`full` for a framed panel, `none` for the edgeless content
+/// slab) is one.
 int _panelSurfaces(WidgetTester tester) => tester
     .widgetList<LiquidGlass>(find.byType(LiquidGlass))
-    .where((glass) => glass.detail == LiquidGlassDetail.full)
+    .where((glass) => glass.detail != LiquidGlassDetail.simple)
     .length;
 
 /// Counts only the "whole framed player" surface — a full-detail LiquidGlass
-/// wrapping a ClipRRect, the shape PreviewPlayer's normal/wide branch and
-/// ContentSlab both use to frame an entire region. This deliberately ignores
+/// wrapping a ClipRRect, the shape PreviewPlayer's normal/wide branch uses to
+/// frame an entire region. (ContentSlab wraps a ClipRRect too but is
+/// edgeless, so it is not a framed surface.) This deliberately ignores
 /// small incidental full-detail surfaces inside the player (e.g. the status
 /// chip), which are unrelated to whether the region itself is framed.
 int _framedPlayerSurfaces(WidgetTester tester) => tester

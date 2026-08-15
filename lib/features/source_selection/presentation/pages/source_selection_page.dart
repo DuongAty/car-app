@@ -1,22 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/services.dart';
 
-import '../../../../core/providers/locale_provider.dart';
-import '../../../../core/services/app_system_service.dart';
-import '../../../../core/shared/widgets/app_top_nav.dart';
 import '../../../../core/shared/widgets/glow_card.dart';
 import '../../../../core/shared/widgets/karaoke_shell.dart';
-import '../../../../core/shared/widgets/language_toggle.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../../routes/app_router.dart';
-import '../../../playback/presentation/widgets/app_control_bar.dart';
-import '../../../settings/data/models/app_settings.dart';
+import '../../../navigation/presentation/widgets/main_nav_rail.dart';
 import '../../../settings/presentation/providers/settings_controller.dart';
-import '../../data/mock/source_selection_mock_data.dart';
 import '../../data/models/music_source.dart';
+import '../../data/mock/source_selection_mock_data.dart';
 import '../providers/source_selection_provider.dart';
 import '../widgets/source_card_content.dart';
 
@@ -54,143 +47,21 @@ class _SourceSelectionPageState extends ConsumerState<SourceSelectionPage> {
     Navigator.of(context).pushNamed(AppRouter.songBrowser, arguments: source);
   }
 
-  void _handleTopAction(SourceSelectionController controller, int index) {
-    controller.selectTopAction(index);
-    if (index == SourceSelectionMockData.settingsActionIndex) {
-      Navigator.of(context).pushNamed(AppRouter.settings);
-      return;
-    }
-    if (index == SourceSelectionMockData.connectPhoneActionIndex) {
-      Navigator.of(context).pushNamed(
-        AppRouter.settings,
-        arguments: const SettingsRouteArguments(
-          initialCategory: SettingsCategory.device,
-        ),
-      );
-      return;
-    }
-    if (index == SourceSelectionMockData.exitActionIndex) {
-      _showExitDialog();
-    }
-  }
-
-  Future<void> _showExitDialog() async {
-    final l10n = context.l10n;
-    final action = await showDialog<_ExitAction>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.panelStrong,
-        title: Text(l10n.exitDialogTitle),
-        content: Text(l10n.exitDialogMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(_ExitAction.cancel),
-            child: Text(l10n.cancel),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(_ExitAction.restart),
-            child: Text(l10n.restartApp),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(_ExitAction.shutdown),
-            child: Text(l10n.shutdownDevice),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(_ExitAction.exit),
-            child: Text(l10n.exitApp),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || action == null || action == _ExitAction.cancel) {
-      return;
-    }
-    switch (action) {
-      case _ExitAction.exit:
-        SystemNavigator.pop();
-      case _ExitAction.restart:
-        try {
-          await const AppSystemService().restartApp();
-        } catch (_) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.restartUnavailable)));
-        }
-      case _ExitAction.shutdown:
-        try {
-          await const AppSystemService().shutdownDevice();
-        } catch (_) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(l10n.shutdownUnavailable)));
-        }
-      case _ExitAction.cancel:
-        break;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Only the top-nav selection is rendered from this provider; watching the
-    // whole state made every D-pad move between cards rebuild all three glass
-    // cards (see onFocusChange below, which no longer writes unused state).
-    final selectedTopActionIndex = ref.watch(
-      sourceSelectionProvider.select((state) => state.selectedTopActionIndex),
-    );
-    final controller = ref.read(sourceSelectionProvider.notifier);
-    final locale = ref.watch(appLocaleProvider);
+    // Nothing from sourceSelectionProvider is rendered here any more — the
+    // brand mark and the destinations moved into MainNavRail, which watches
+    // its own slices. Watching the whole state here made every D-pad move
+    // between cards rebuild all three glass cards.
     final particlesEnabled = ref.watch(
       settingsControllerProvider.select(
         (settings) => settings.particlesEnabled,
       ),
     );
-    final localeController = ref.read(appLocaleProvider.notifier);
-    final l10n = context.l10n;
-    final sources = SourceSelectionMockData.localizedSources(l10n);
+    final sources = SourceSelectionMockData.localizedSources(context.l10n);
 
     return KaraokeShell(
-      topBar: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxWidth < 920;
-          // Mirrors MainTopBar's structure (song_browser/main_top_bar.dart):
-          // the nav is centred on the whole bar via a Stack, with the other
-          // controls layered in a Row on top, so the nav's centre matches
-          // screen centre regardless of what flanks it and never shifts
-          // between the source picker and the browser page.
-          return SizedBox(
-            height: AppLayout.topNavItemHeight,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Row(
-                  children: [
-                    const Spacer(),
-                    SizedBox(width: compact ? 12 : 28),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 9),
-                      child: LanguageToggle(
-                        isVietnamese: locale.languageCode == 'vi',
-                        onToggle: localeController.toggle,
-                      ),
-                    ),
-                  ],
-                ),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: AppTopNav(
-                    actions: SourceSelectionMockData.topActions(l10n),
-                    selectedIndex: selectedTopActionIndex,
-                    style: TopNavStyle.boxed,
-                    onSelected: (index) => _handleTopAction(controller, index),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+      navRail: const MainNavRail(selectedId: NavDestination.home),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final compactHeight = constraints.maxHeight < 560;
@@ -214,7 +85,6 @@ class _SourceSelectionPageState extends ConsumerState<SourceSelectionPage> {
           );
         },
       ),
-      bottomBar: const AppControlBar(),
     );
   }
 }
@@ -296,8 +166,6 @@ class _ResponsiveSourceGrid extends StatelessWidget {
     );
   }
 }
-
-enum _ExitAction { exit, restart, shutdown, cancel }
 
 class _Headline extends StatelessWidget {
   const _Headline();

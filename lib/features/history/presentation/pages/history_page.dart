@@ -11,8 +11,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../playback/presentation/providers/now_playing_controller.dart';
-import '../../../playback/presentation/widgets/app_control_bar.dart';
-import '../../../song_browser/presentation/widgets/main_top_bar.dart';
+import '../../../navigation/presentation/widgets/main_nav_rail.dart';
 import '../../../song_browser/presentation/widgets/preview_player.dart';
 import '../providers/history_controller.dart';
 import '../relative_time.dart';
@@ -40,7 +39,7 @@ class HistoryPage extends ConsumerWidget {
       },
       child: KaraokeShell(
         chromeVisible: mode != PlayerViewMode.fullscreen,
-        topBar: MainTopBar(selectedIndex: null),
+        navRail: const MainNavRail(hasStagePlayer: true),
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -97,7 +96,6 @@ class HistoryPage extends ConsumerWidget {
             const Expanded(child: PreviewPlayer()),
           ],
         ),
-        bottomBar: const AppControlBar(hasStagePlayer: true),
       ),
     );
   }

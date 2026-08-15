@@ -18,6 +18,12 @@ const _viewportSize = Size(1920, 1080);
 // this tolerance is generous without masking it.
 const _centerToleranceX = 4.0;
 
+/// Centre of the shell's content area, which is the screen minus the left
+/// navigation rail. The cards centre on the body they live in, not on the
+/// display — the rail is chrome, not content.
+double _bodyCenterX(WidgetTester tester) =>
+    tester.getRect(find.byKey(const ValueKey('karaokeShellBody'))).center.dx;
+
 Future<void> _pump(WidgetTester tester) async {
   tester.view.physicalSize = _viewportSize;
   tester.view.devicePixelRatio = 1;
@@ -70,7 +76,7 @@ void main() {
 
     expect(
       (left + right) / 2,
-      closeTo(_viewportSize.width / 2, _centerToleranceX),
+      closeTo(_bodyCenterX(tester), _centerToleranceX),
     );
   });
 

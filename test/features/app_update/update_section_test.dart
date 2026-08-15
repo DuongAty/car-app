@@ -154,7 +154,7 @@ void main() {
         tester,
         const AppUpdateState(
           status: AppUpdateStatus.installRequested,
-          downloadedPath: '/tmp/updates/youcar-7.apk',
+          downloadedPath: '/tmp/updates/wetube-7.apk',
         ),
       );
 
@@ -175,7 +175,7 @@ void main() {
         const AppUpdateState(
           status: AppUpdateStatus.error,
           error: AppUpdateError.install,
-          downloadedPath: '/tmp/updates/youcar-7.apk',
+          downloadedPath: '/tmp/updates/wetube-7.apk',
         ),
       );
 
@@ -274,7 +274,7 @@ void main() {
         const AppUpdateState(
           status: AppUpdateStatus.error,
           error: AppUpdateError.installCancelled,
-          downloadedPath: '/tmp/updates/youcar-7.apk',
+          downloadedPath: '/tmp/updates/wetube-7.apk',
         ),
         system: system,
         downloader: downloader,
@@ -296,7 +296,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(system.installApkCallCount, 1);
-      expect(system.installedPath, '/tmp/updates/youcar-7.apk');
+      expect(system.installedPath, '/tmp/updates/wetube-7.apk');
       expect(downloader.callCount, 0);
     },
   );

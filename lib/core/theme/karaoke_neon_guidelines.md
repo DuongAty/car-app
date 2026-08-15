@@ -67,7 +67,7 @@ If a new screen needs another repeated color, shadow, radius, or spacing rule, a
   that continuously repaint or affect many siblings at once.
 
 ## Component Rules
-- Build reusable shared widgets before repeating neon cards, top actions, bottom hint bars, search shells, or keyboard keys.
+- Build reusable shared widgets before repeating neon cards, rail destinations, search shells, or keyboard keys.
 - Extend `lib/core/shared/widgets/` when a visual pattern appears more than once.
 - Keep feature screens responsible for layout and state wiring, not repeated styling details.
 - For dynamic lists, queues, search results, grids, favorites, and history,

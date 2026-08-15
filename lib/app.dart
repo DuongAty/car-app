@@ -25,7 +25,7 @@ class VietKtvApp extends ConsumerWidget {
 
     return MaterialApp(
       onGenerateTitle: (context) =>
-          AppLocalizations.of(context)?.appTitle ?? 'car-app',
+          AppLocalizations.of(context)?.appTitle ?? 'WeTube',
       debugShowCheckedModeBanner: false,
       // Removes the pull-past-edge stretch/glow on every scrollable: it is a
       // per-frame transform of the whole list content (costly on a 1-core box)

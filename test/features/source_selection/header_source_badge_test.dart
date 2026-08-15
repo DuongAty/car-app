@@ -10,7 +10,7 @@ import 'package:viet_ktv/features/favorites/presentation/pages/favorites_page.da
 import 'package:viet_ktv/features/song_browser/data/models/song_item.dart';
 import 'package:viet_ktv/features/song_browser/presentation/pages/song_browser_page.dart';
 import 'package:viet_ktv/features/song_browser/presentation/providers/music_sdk_repository_provider.dart';
-import 'package:viet_ktv/features/song_browser/presentation/widgets/main_top_bar.dart';
+import 'package:viet_ktv/features/navigation/presentation/widgets/main_nav_rail.dart';
 import 'package:viet_ktv/features/source_selection/data/models/music_source.dart';
 import 'package:viet_ktv/features/source_selection/presentation/pages/source_selection_page.dart';
 import 'package:viet_ktv/features/source_selection/presentation/providers/source_selection_provider.dart';
@@ -80,12 +80,12 @@ Future<ProviderContainer> _pump(
 }
 
 Finder _headerMark() => find.descendant(
-  of: find.byType(MainTopBar),
+  of: find.byType(MainNavRail),
   matching: find.byType(SourceMark),
 );
 
 void main() {
-  testWidgets('browser page header shows the YouTube mark when YouTube '
+  testWidgets('browser page rail shows the YouTube mark when YouTube '
       'was selected', (tester) async {
     final container = await _pump(
       tester,
@@ -103,7 +103,7 @@ void main() {
     );
   });
 
-  testWidgets('browser page header shows the SoundCloud mark when '
+  testWidgets('browser page rail shows the SoundCloud mark when '
       'SoundCloud was selected', (tester) async {
     final container = await _pump(
       tester,
@@ -125,7 +125,7 @@ void main() {
     );
   });
 
-  testWidgets('header badge is header-wide: favorites page shows it too', (
+  testWidgets('rail badge is app-wide: favorites page shows it too', (
     tester,
   ) async {
     final container = await _pump(tester, const FavoritesPage());
@@ -141,10 +141,12 @@ void main() {
     );
   });
 
-  testWidgets('source picker header shows no mark', (tester) async {
+  testWidgets('source picker rail shows the selected mark', (tester) async {
+    // The rail is app-wide now, so unlike the old top bar the source picker
+    // carries the mark too.
     await _pump(tester, const SourceSelectionPage());
 
-    expect(find.byType(SourceMark), findsNothing);
+    expect(_headerMark(), findsOneWidget);
   });
 
   testWidgets('mark sits in the left half of the screen', (tester) async {
@@ -155,7 +157,7 @@ void main() {
   });
 
   testWidgets(
-    'header shows no wordmark text when YouTube is selected, just the mark',
+    'rail shows no wordmark text when YouTube is selected, just the mark',
     (tester) async {
       final container = await _pump(
         tester,
@@ -178,7 +180,7 @@ void main() {
   );
 
   testWidgets(
-    'header shows no wordmark text when SoundCloud is selected, just the '
+    'rail shows no wordmark text when SoundCloud is selected, just the '
     'mark',
     (tester) async {
       final container = await _pump(
@@ -203,7 +205,7 @@ void main() {
 
   testWidgets(
     'favorites row (PersistedSongTile) still shows the full SourceBadge '
-    'wordmark chip, unaffected by the mark-only header',
+    'wordmark chip, unaffected by the mark-only rail',
     (tester) async {
       final entry = PersistedSongEntry(
         song: const SongItem(

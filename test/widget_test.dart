@@ -25,6 +25,8 @@ import 'package:viet_ktv/features/song_browser/presentation/widgets/search_resul
 import 'package:viet_ktv/features/song_browser/presentation/widgets/search_results_panel.dart';
 import 'package:viet_ktv/features/source_selection/data/models/music_source.dart';
 import 'package:viet_ktv/l10n/app_localizations.dart';
+import 'package:viet_ktv/features/song_browser/presentation/widgets/suggestions_panel.dart';
+import 'package:viet_ktv/features/song_browser/presentation/widgets/suggestion_tile.dart';
 
 import 'support/fake_license_repository.dart';
 import 'support/fake_music_sdk_platform.dart';
@@ -164,10 +166,22 @@ void main() {
     expect(find.text('DẤU CÁCH'), findsNothing);
   });
 
-  testWidgets('shows_idle_prompt_before_any_search', (tester) async {
+  testWidgets('shows_suggestions_before_any_search', (tester) async {
+    // The results column is never an empty "type something" placeholder: on
+    // open it carries the seeded suggestions, so there is something to play
+    // without touching the keyboard.
     await _pumpSongBrowser(tester);
 
-    expect(find.text('Nhập từ khóa rồi bấm TÌM để tìm kiếm'), findsOneWidget);
+    expect(find.byType(SuggestionsPanel), findsOneWidget);
+    expect(find.text('GỢI Ý CHO BẠN'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SuggestionsPanel),
+        matching: find.byType(SuggestionTile),
+      ),
+      findsWidgets,
+    );
+    expect(find.text('Nhập từ khóa rồi bấm TÌM để tìm kiếm'), findsNothing);
   });
 
   testWidgets('searches_the_real_api_when_tim_is_pressed', (tester) async {
@@ -192,7 +206,7 @@ void main() {
     expect(find.text('Không có kết quả phù hợp'), findsOneWidget);
   });
 
-  testWidgets('clearing_the_query_returns_to_the_idle_prompt', (tester) async {
+  testWidgets('clearing_the_query_returns_to_the_suggestions', (tester) async {
     await _pumpSongBrowser(tester);
 
     await _search(tester, 'Z');
@@ -204,7 +218,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Nhập từ khóa rồi bấm TÌM để tìm kiếm'), findsOneWidget);
+    // Back to idle means back to the suggestions, not to a blank prompt — and
+    // they are served from the cache, so no reload is needed.
+    expect(find.byType(SuggestionsPanel), findsOneWidget);
+    expect(find.text('GỢI Ý CHO BẠN'), findsOneWidget);
   });
 
   testWidgets('clearing_the_native_field_returns_to_the_idle_prompt', (
@@ -678,7 +695,7 @@ void main() {
 
     // Collapsed panels stay in the tree, so they must be excluded from D-pad
     // traversal or focus would walk into rows the user cannot see.
-    for (final panel in [find.byType(SearchResultsPanel)]) {
+    for (final panel in [find.byType(SuggestionsPanel)]) {
       final guard = tester.widget<ExcludeFocus>(
         find.ancestor(of: panel, matching: find.byType(ExcludeFocus)).first,
       );
@@ -717,7 +734,8 @@ void main() {
       final screen = Offset.zero & viewport;
       for (final finder in [
         find.byType(PreviewPlayer),
-        find.byType(SearchResultsPanel),
+        // Idle on open, so the results column is the suggestions panel.
+        find.byType(SuggestionsPanel),
       ]) {
         final rect = tester.getRect(finder.first);
         expect(screen.overlaps(rect), isTrue);

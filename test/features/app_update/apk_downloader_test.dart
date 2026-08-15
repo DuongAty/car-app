@@ -24,13 +24,13 @@ void main() {
       request.response.add(body);
       await request.response.close();
     });
-    return 'http://${server.address.address}:${server.port}/youcar.apk';
+    return 'http://${server.address.address}:${server.port}/wetube.apk';
   }
 
   test('writes_the_body_and_returns_its_sha256', () async {
-    // sha256("youcar") — a known digest, so the test proves the hash is of
+    // sha256("wetube") — a known digest, so the test proves the hash is of
     // the written bytes rather than of whatever the implementation felt like.
-    final url = await serve('youcar'.codeUnits);
+    final url = await serve('wetube'.codeUnits);
     final destination = '${tempDir.path}/update.apk';
 
     final digest = await const HttpApkDownloader().download(
@@ -39,10 +39,10 @@ void main() {
       onProgress: (_) {},
     );
 
-    expect(File(destination).readAsStringSync(), 'youcar');
+    expect(File(destination).readAsStringSync(), 'wetube');
     expect(
       digest,
-      '3a769e561d5130190cc06be93fb5a51027b39196b1faac9a0cf41a4aaa1161d5',
+      '498a42859a4ff2356615ccb59a491888ebf2034776e42227fb8f9bae07090235',
     );
   });
 
@@ -69,39 +69,35 @@ void main() {
     expect(progress.last, closeTo(1.0, 0.001));
   });
 
-  test(
-    'reports_no_progress_when_server_omits_content_length',
-    () async {
-      // sha256("youcar") again, but served without a Content-Length header
-      // (chunked transfer encoding) so the total size is unknowable.
-      final body = 'youcar'.codeUnits;
-      server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      server.listen((request) async {
-        request.response.statusCode = 200;
-        // Deliberately not setting headers.contentLength: Dart's HttpServer
-        // then falls back to chunked transfer encoding.
-        request.response.add(body);
-        await request.response.close();
-      });
-      final url =
-          'http://${server.address.address}:${server.port}/youcar.apk';
-      final destination = '${tempDir.path}/update.apk';
+  test('reports_no_progress_when_server_omits_content_length', () async {
+    // sha256("wetube") again, but served without a Content-Length header
+    // (chunked transfer encoding) so the total size is unknowable.
+    final body = 'wetube'.codeUnits;
+    server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      request.response.statusCode = 200;
+      // Deliberately not setting headers.contentLength: Dart's HttpServer
+      // then falls back to chunked transfer encoding.
+      request.response.add(body);
+      await request.response.close();
+    });
+    final url = 'http://${server.address.address}:${server.port}/wetube.apk';
+    final destination = '${tempDir.path}/update.apk';
 
-      final progress = <double>[];
-      final digest = await const HttpApkDownloader().download(
-        url: url,
-        destinationPath: destination,
-        onProgress: progress.add,
-      );
+    final progress = <double>[];
+    final digest = await const HttpApkDownloader().download(
+      url: url,
+      destinationPath: destination,
+      onProgress: progress.add,
+    );
 
-      expect(File(destination).readAsStringSync(), 'youcar');
-      expect(
-        digest,
-        '3a769e561d5130190cc06be93fb5a51027b39196b1faac9a0cf41a4aaa1161d5',
-      );
-      expect(progress, isEmpty);
-    },
-  );
+    expect(File(destination).readAsStringSync(), 'wetube');
+    expect(
+      digest,
+      '498a42859a4ff2356615ccb59a491888ebf2034776e42227fb8f9bae07090235',
+    );
+    expect(progress, isEmpty);
+  });
 
   test('a_non_200_response_throws_and_leaves_no_file_behind', () async {
     final url = await serve(const [], status: 404);

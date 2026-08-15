@@ -4,11 +4,13 @@ import '../../../../core/shared/widgets/favorite_toggle.dart';
 import '../../../../core/shared/widgets/focusable_tile.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_glows.dart';
+import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../core/theme/app_radius.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../source_selection/data/models/music_source.dart';
 import '../../data/models/song_item.dart';
+import '../../../../core/shared/widgets/liquid_glass.dart';
 import 'song_thumbnail.dart';
 
 /// Row in the "GỢI Ý CHO BẠN" column: artwork, title, artist, and duration.
@@ -18,6 +20,7 @@ class SuggestionTile extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onPressed,
+    required this.onAdd,
     required this.source,
     this.onFocused,
   });
@@ -25,6 +28,7 @@ class SuggestionTile extends StatelessWidget {
   final SongItem item;
   final bool selected;
   final VoidCallback onPressed;
+  final VoidCallback onAdd;
   final MusicSourceLogoStyle source;
   final VoidCallback? onFocused;
 
@@ -94,6 +98,8 @@ class SuggestionTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.xs),
+              Text(item.duration, style: textTheme.bodySmall),
+              const SizedBox(width: AppSpacing.xs),
               FavoriteToggle(
                 song: item,
                 source: source,
@@ -101,7 +107,33 @@ class SuggestionTile extends StatelessWidget {
                 iconSize: 18,
               ),
               const SizedBox(width: AppSpacing.xs),
-              Text(item.duration, style: textTheme.bodySmall),
+              // Same affordance as a search result: suggestions are the first
+              // thing on screen, so queueing from them must not need a search
+              // first.
+              InkWell(
+                onTap: onAdd,
+                customBorder: const CircleBorder(),
+                child: SizedBox(
+                  width: 36,
+                  height: 36,
+                  child: LiquidGlass(
+                    capsule: true,
+                    detail: LiquidGlassDetail.simple,
+                    lifted: false,
+                    opacity: 0.38,
+                    tint: active ? AppColors.green : null,
+                    tintStrength: 0.3,
+                    rimColor: active ? AppColors.green : null,
+                    child: Center(
+                      child: Icon(
+                        AppIcons.add,
+                        size: 20,
+                        color: active ? AppColors.green : AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         );

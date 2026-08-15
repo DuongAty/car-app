@@ -1,7 +1,5 @@
 import 'package:viet_ktv/l10n/app_localizations.dart';
 
-import '../../../../core/models/nav_action_item.dart';
-import '../../../../core/theme/app_icons.dart';
 import '../models/song_item.dart';
 
 abstract final class SongBrowserMockData {
@@ -12,44 +10,12 @@ abstract final class SongBrowserMockData {
   static const String keyClear = 'CLEAR';
   static const String keyNumbers = '123';
 
-  /// Position of "TRANG CHỦ" in [topActions] — tapping it returns to the
-  /// source-selection home screen instead of toggling a tab.
-  static const int homeTabIndex = 0;
-
-  /// Position of "TÌM BÀI" in [topActions] — the default active tab showing
-  /// search + keyboard.
+  /// Index of the search tab in the song browser's own tab state — the rail's
+  /// "TÌM BÀI" destination selects it.
   static const int searchTabIndex = 1;
 
-  /// Position of "DANH MỤC" in [topActions] — swaps the left column to
-  /// a category browser and hides the on-screen keyboard.
+  /// Index of the category tab, selected by the rail's "DANH MỤC".
   static const int categoryTabIndex = 2;
-
-  /// Position of "ĐÃ CHỌN" in [topActions] — tapping it navigates to the
-  /// queue screen instead of just toggling the highlighted tab.
-  static const int selectedTabIndex = 3;
-
-  /// Position of "CÀI ĐẶT" in [topActions] — tapping it navigates to the
-  /// settings screen instead of just toggling the highlighted tab.
-  static const int settingsTabIndex = 4;
-
-  /// Position of "THOÁT" in [topActions] — tapping it closes the app.
-  static const int exitTabIndex = 5;
-
-  static List<NavActionItem> topActions(
-    AppLocalizations l10n,
-    int queueCount,
-  ) => [
-    NavActionItem(label: l10n.topHome, icon: AppIcons.home),
-    NavActionItem(label: l10n.songSearch, icon: AppIcons.search),
-    NavActionItem(label: l10n.songList, icon: AppIcons.categoryGrid),
-    NavActionItem(
-      label: l10n.songSelected,
-      icon: AppIcons.selectedQueue,
-      badgeCount: queueCount > 0 ? queueCount : null,
-    ),
-    NavActionItem(label: l10n.topSettings, icon: AppIcons.settings),
-    NavActionItem(label: l10n.topExit, icon: AppIcons.power),
-  ];
 
   static List<SongItem> searchResults(AppLocalizations l10n) => [
     SongItem(

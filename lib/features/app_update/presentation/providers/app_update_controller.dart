@@ -171,7 +171,7 @@ class AppUpdateController extends StateNotifier<AppUpdateState> {
     var lastPercent = 0;
     try {
       final dir = await system.updateCacheDir();
-      path = '$dir/youcar-${release.versionCode}.apk';
+      path = '$dir/wetube-${release.versionCode}.apk';
       digest = await downloader.download(
         url: release.apkUrl,
         destinationPath: path,

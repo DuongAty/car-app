@@ -4,24 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/shared/widgets/collapsible_axis.dart';
 import '../../../../core/shared/widgets/karaoke_shell.dart';
 import '../../../../core/shared/widgets/surface_scope.dart';
-import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_layout.dart';
-import '../../../../core/theme/app_motion.dart';
 import '../../../../l10n/l10n.dart';
-import '../../../../routes/app_router.dart';
+import '../../../navigation/presentation/widgets/main_nav_rail.dart';
 import '../../../playback/presentation/providers/now_playing_controller.dart';
 import '../../../queue/presentation/providers/queue_provider.dart';
-import '../../../playback/presentation/widgets/app_control_bar.dart';
-import '../../../queue/presentation/widgets/selected_queue_panel.dart';
 import '../../../source_selection/data/models/music_source.dart';
 import '../../data/mock/song_browser_mock_data.dart';
+import '../../data/models/song_item.dart';
 import '../../data/song_categories.dart';
 import '../providers/song_browser_provider.dart';
 import '../widgets/category_grid_panel.dart';
-import '../widgets/main_top_bar.dart';
 import '../widgets/native_song_search_field.dart';
 import '../widgets/preview_player.dart';
 import '../widgets/search_results_panel.dart';
+import '../widgets/suggestions_panel.dart';
 
 class SongBrowserPage extends ConsumerStatefulWidget {
   const SongBrowserPage({
@@ -38,7 +35,6 @@ class SongBrowserPage extends ConsumerStatefulWidget {
 }
 
 class _SongBrowserPageState extends ConsumerState<SongBrowserPage> {
-  bool _queueDrawerOpen = false;
   bool _initialTopActionApplied = false;
 
   // Fullscreen is the one mode where PreviewPlayer sits outside ContentSlab
@@ -109,14 +105,18 @@ class _SongBrowserPageState extends ConsumerState<SongBrowserPage> {
         // way out but Back, so the mode only affects the tab that has a
         // player.
         chromeVisible: isCategoryTab || mode != PlayerViewMode.fullscreen,
-        topBar: MainTopBar(
-          selectedIndex: selectedTopActionIndex,
+        navRail: MainNavRail(
+          selectedId: isCategoryTab
+              ? NavDestination.categories
+              : NavDestination.search,
           currentSource: widget.source,
+          hasStagePlayer: !isCategoryTab,
           onSearchSelected: () =>
               controller.selectTopAction(SongBrowserMockData.searchTabIndex),
-          onCategorySelected: () =>
+          onCategoriesSelected: () =>
               controller.selectTopAction(SongBrowserMockData.categoryTabIndex),
-          onOtherSelected: (index) => _handleTopAction(controller, index),
+          onMiniPlayerTap: () =>
+              controller.selectTopAction(SongBrowserMockData.searchTabIndex),
         ),
         body: LayoutBuilder(
           builder: (context, constraints) {
@@ -126,14 +126,9 @@ class _SongBrowserPageState extends ConsumerState<SongBrowserPage> {
             final leftPanelWidth = (constraints.maxWidth * 0.38)
                 .clamp(360.0, AppLayout.browserRightPanelWidth)
                 .toDouble();
-            final rightPanelWidth = (constraints.maxWidth * 0.35)
-                .clamp(360.0, AppLayout.browserRightPanelWidth)
-                .toDouble();
 
-            return Stack(
-              children: [
-                if (isCategoryTab)
-                  ContentSlab(
+            return isCategoryTab
+                ? ContentSlab(
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -196,8 +191,7 @@ class _SongBrowserPageState extends ConsumerState<SongBrowserPage> {
                       ],
                     ),
                   )
-                else
-                  Builder(
+                : Builder(
                     builder: (context) {
                       final Widget row = Row(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -254,78 +248,11 @@ class _SongBrowserPageState extends ConsumerState<SongBrowserPage> {
                           ? SurfaceScope(child: row)
                           : ContentSlab(child: row);
                     },
-                  ),
-                if (_queueDrawerOpen) ...[
-                  Positioned.fill(
-                    child: GestureDetector(
-                      onTap: _closeQueueDrawer,
-                      child: ColoredBox(
-                        color: AppColors.background.withValues(alpha: 0.42),
-                      ),
-                    ),
-                  ),
-                  Positioned.fill(
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween(begin: 1, end: 0),
-                        duration: AppMotion.panel,
-                        curve: AppMotion.standardCurve,
-                        builder: (context, value, child) {
-                          return FractionalTranslation(
-                            translation: Offset(value, 0),
-                            child: child,
-                          );
-                        },
-                        child: SizedBox(
-                          key: const ValueKey('selectedQueueDrawer'),
-                          width: rightPanelWidth,
-                          child: SelectedQueuePanel(onClose: _closeQueueDrawer),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            );
+                  );
           },
-        ),
-        // The search tab hosts the full PreviewPlayer; the category ("Danh mục")
-        // tab has no stage, so the mini-player drops into the bar there instead.
-        bottomBar: AppControlBar(
-          hasStagePlayer: !isCategoryTab,
-          onMiniPlayerTap: () =>
-              controller.selectTopAction(SongBrowserMockData.searchTabIndex),
-          onQueue: () => setState(() {
-            _queueDrawerOpen = true;
-          }),
         ),
       ),
     );
-  }
-
-  void _closeQueueDrawer() {
-    setState(() {
-      _queueDrawerOpen = false;
-    });
-  }
-
-  void _handleTopAction(SongBrowserController controller, int index) {
-    if (index == SongBrowserMockData.selectedTabIndex) {
-      Navigator.of(context).pushNamed(AppRouter.selectedQueue);
-      return;
-    }
-    if (index == SongBrowserMockData.settingsTabIndex) {
-      Navigator.of(context).pushNamed(AppRouter.settings);
-      return;
-    }
-    if (index == SongBrowserMockData.homeTabIndex) {
-      // Home is the initial route — pop back to the existing source picker
-      // rather than pushing a second copy onto the stack.
-      Navigator.of(context).popUntil((route) => route.isFirst);
-      return;
-    }
-    controller.selectTopAction(index);
   }
 }
 
@@ -373,6 +300,45 @@ class _SearchResults extends ConsumerWidget {
     // is picked up instead of calling a disposed one.
     final controller = ref.watch(provider.notifier);
     final search = ref.watch(provider.select((s) => s.search));
+
+    void add(SongItem song) {
+      final result = controller.addSongToQueue(song);
+      final message = switch (result) {
+        QueueAddResult.added => context.l10n.queueAdded,
+        QueueAddResult.duplicate => context.l10n.queueDuplicate,
+      };
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+    }
+
+    // Before the first search the column is not empty: it shows the cached
+    // suggestions, which are already on screen when the page opens and are
+    // revalidated in the background. An idle "type something" placeholder
+    // wasted the most valuable surface on the screen.
+    if (search is SearchIdle) {
+      final recommendations = ref.watch(
+        provider.select((s) => s.recommendations),
+      );
+      final selectedIndex = ref.watch(
+        provider.select((s) => s.selectedSuggestionIndex),
+      );
+
+      return SuggestionsPanel(
+        recommendations: recommendations,
+        selectedIndex: selectedIndex,
+        onSelected: controller.selectSuggestion,
+        onPlay: controller.playSong,
+        onAdd: add,
+        source: source.logoStyle,
+      );
+    }
+
     final selectedIndex = ref.watch(
       provider.select((s) => s.selectedResultIndex),
     );
@@ -382,21 +348,7 @@ class _SearchResults extends ConsumerWidget {
       selectedIndex: selectedIndex,
       onSelected: controller.selectResult,
       onPlay: controller.playSong,
-      onAdd: (song) {
-        final result = controller.addSongToQueue(song);
-        final message = switch (result) {
-          QueueAddResult.added => context.l10n.queueAdded,
-          QueueAddResult.duplicate => context.l10n.queueDuplicate,
-        };
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text(message),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-      },
+      onAdd: add,
       source: source.logoStyle,
     );
   }

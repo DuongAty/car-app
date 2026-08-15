@@ -10,7 +10,6 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 
 import 'package:viet_ktv/core/providers/local_storage_provider.dart';
 import 'package:viet_ktv/core/services/music_sdk_platform.dart';
-import 'package:viet_ktv/core/shared/widgets/liquid_glass.dart';
 import 'package:viet_ktv/core/theme/app_colors.dart';
 import 'package:viet_ktv/features/playback/data/audio_track_player.dart';
 import 'package:viet_ktv/features/playback/presentation/providers/now_playing_controller.dart';
@@ -95,6 +94,7 @@ Future<void> _searchAndAddToQueue(WidgetTester tester, String query) async {
 
   await tester.tap(find.byIcon(AppIcons.add));
   await tester.pumpAndSettle();
+  await _dismissSnackBars(tester);
 }
 
 Future<void> _submitSearch(WidgetTester tester, String query) async {
@@ -103,6 +103,16 @@ Future<void> _submitSearch(WidgetTester tester, String query) async {
     query,
   );
   await tester.testTextInput.receiveAction(TextInputAction.search);
+  await tester.pumpAndSettle();
+}
+
+/// Clears the "added to queue" SnackBar.
+///
+/// It floats over the bottom of the screen, which is where the player's
+/// transport row sits now that the shell's gutters are a hairline. Left up, it
+/// swallows taps aimed at those buttons.
+Future<void> _dismissSnackBars(WidgetTester tester) async {
+  await tester.pump(const Duration(seconds: 3));
   await tester.pumpAndSettle();
 }
 
@@ -129,24 +139,21 @@ void main() {
     expect(find.text('1 bài'), findsOneWidget);
   });
 
-  testWidgets('bottom_queue_hint_opens_drawer_without_navigating', (
-    tester,
-  ) async {
+  testWidgets('rail_queue_destination_opens_the_queue_page', (tester) async {
+    // The browser used to peek at the queue in a slide-in drawer, opened from
+    // the bottom hint bar. With that bar gone the rail's "ĐÃ CHỌN" is the one
+    // entry point, and it behaves the same on every screen: it navigates.
     await _pumpBrowser(tester, platform: FakeMusicSdkPlatform());
 
     await _searchAndAddToQueue(tester, 'OFFICIAL');
-    await tester.tap(find.textContaining('Xem danh'));
-    await tester.pumpAndSettle();
+    await _openQueueScreen(tester);
 
-    final drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
-    expect(drawer, findsOneWidget);
-    final drawerSurface = tester.widget<LiquidGlass>(
-      find.descendant(of: drawer, matching: find.byType(LiquidGlass)).first,
-    );
-    expect(drawerSurface.opacity, greaterThanOrEqualTo(0.82));
-    expect(find.byType(SelectedQueuePage), findsNothing);
+    expect(find.byType(SelectedQueuePage), findsOneWidget);
     expect(
-      find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
+      find.descendant(
+        of: find.byType(SelectedQueuePage),
+        matching: find.byType(QueuedSongTile),
+      ),
       findsOneWidget,
     );
     expect(find.text('1 bài'), findsOneWidget);
@@ -243,18 +250,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(addButtons.at(1));
     await tester.pumpAndSettle();
+    await _dismissSnackBars(tester);
 
-    await tester.tap(find.textContaining('Xem danh'));
-    await tester.pumpAndSettle();
-    var drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
-      find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsNWidgets(2),
+      ProviderScope.containerOf(
+        tester.element(find.byType(SongBrowserPage)),
+      ).read(queueProvider).items.length,
+      2,
     );
-    await tester.tap(
-      find.descendant(of: drawer, matching: find.byIcon(AppIcons.close)).first,
-    );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Lạc Trôi - Sơn Tùng M-TP (Karaoke)'));
     for (var i = 0; i < 10; i++) {
@@ -268,17 +271,12 @@ void main() {
     }
     expect(platform.lastPlayableLinkTrackId, '1');
 
-    await tester.tap(find.textContaining('Xem danh'));
-    await tester.pumpAndSettle();
-    drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
-      find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsNWidgets(2),
+      ProviderScope.containerOf(
+        tester.element(find.byType(SongBrowserPage)),
+      ).read(queueProvider).items.length,
+      2,
     );
-    await tester.tap(
-      find.descendant(of: drawer, matching: find.byIcon(AppIcons.close)).first,
-    );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(AppIcons.next));
     for (var i = 0; i < 10; i++) {
@@ -293,17 +291,12 @@ void main() {
     expect(playback, isA<PlaybackReady>());
     expect((playback as PlaybackReady).song.id, '9');
 
-    await tester.tap(find.textContaining('Xem danh'));
-    await tester.pumpAndSettle();
-    drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
-      find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsOneWidget,
+      ProviderScope.containerOf(
+        tester.element(find.byType(SongBrowserPage)),
+      ).read(queueProvider).items.length,
+      1,
     );
-    await tester.tap(
-      find.descendant(of: drawer, matching: find.byIcon(AppIcons.close)).first,
-    );
-    await tester.pumpAndSettle();
 
     await tester.tap(find.byIcon(AppIcons.previous));
     for (var i = 0; i < 10; i++) {
@@ -330,6 +323,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(addButtons.at(1));
     await tester.pumpAndSettle();
+    await _dismissSnackBars(tester);
 
     await tester.tap(find.byIcon(AppIcons.next));
     for (var i = 0; i < 10; i++) {
@@ -343,12 +337,11 @@ void main() {
     }
     expect(platform.lastPlayableLinkTrackId, '9');
 
-    await tester.tap(find.textContaining('Xem danh'));
-    await tester.pumpAndSettle();
-    final drawer = find.byKey(const ValueKey('selectedQueueDrawer'));
     expect(
-      find.descendant(of: drawer, matching: find.byType(QueuedSongTile)),
-      findsOneWidget,
+      ProviderScope.containerOf(
+        tester.element(find.byType(SongBrowserPage)),
+      ).read(queueProvider).items.length,
+      1,
     );
 
     await tester.pumpWidget(const SizedBox());

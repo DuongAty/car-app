@@ -10,7 +10,11 @@ import 'package:viet_ktv/features/source_selection/data/models/music_source.dart
 /// runs on every page open, not just on an explicit user search) resolves to a
 /// deterministic, non-empty list in tests.
 class FakeMusicSdkPlatform implements MusicSdkPlatform {
-  FakeMusicSdkPlatform({this.failSearch = false, this.failLink = false});
+  FakeMusicSdkPlatform({
+    this.failSearch = false,
+    this.failLink = false,
+    this.searchDelay = Duration.zero,
+  });
 
   static final List<MusicSdkTrack> catalog = [
     MusicSdkTrack(
@@ -39,6 +43,11 @@ class FakeMusicSdkPlatform implements MusicSdkPlatform {
   final bool failSearch;
   final bool failLink;
 
+  /// Holds [search] open so a test can observe what is on screen while a call
+  /// is still in flight — e.g. cached suggestions painted before the network
+  /// revalidation lands.
+  final Duration searchDelay;
+
   String? lastSearchQuery;
   final List<String> searchQueries = [];
   String? lastPlayableLinkTrackId;
@@ -53,6 +62,9 @@ class FakeMusicSdkPlatform implements MusicSdkPlatform {
   }) async {
     lastSearchQuery = query;
     searchQueries.add(query);
+    if (searchDelay > Duration.zero) {
+      await Future<void>.delayed(searchDelay);
+    }
     if (failSearch) {
       throw PlatformException(code: 'music_sdk_search_failed');
     }

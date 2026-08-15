@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phát hành một bản cập nhật youcar, từ đầu tới cuối bằng một lệnh:
+# Phát hành một bản cập nhật WeTube, từ đầu tới cuối bằng một lệnh:
 # ghi phiên bản vào pubspec, build, kiểm chữ ký, đưa lên GitHub Releases,
 # rồi ghi thẳng bản ghi vào Supabase.
 #
@@ -113,7 +113,7 @@ NEXT=$((FLOOR + 1))
    2.0.0, máy vẫn báo 'không có bản cập nhật mới' — mãi mãi."
 
 TAG="v$VERSION_NAME"
-APK="youcar-$VERSION_NAME.apk"
+APK="wetube-$VERSION_NAME.apk"
 
 gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 && die "Tag $TAG đã tồn tại trên $REPO.
    Đừng ghi đè một bản đã phát hành: máy nào lỡ tải bản cũ sẽ thấy hash
@@ -219,7 +219,7 @@ git add pubspec.yaml
 if git diff --cached --quiet; then
   echo "   không có gì mới để commit (chạy lại sau lần push hỏng)"
 else
-  git commit -m "chore: youcar $VERSION_NAME (versionCode $VERSION_CODE)
+  git commit -m "chore: wetube $VERSION_NAME (versionCode $VERSION_CODE)
 
 $NOTES"
 fi
@@ -238,7 +238,7 @@ cp "$BUILT" "$APK"
 trap 'rm -f "$APK"' EXIT
 
 gh release create "$TAG" "$APK" --repo "$REPO" \
-  --title "youcar $VERSION_NAME" --notes "$NOTES"
+  --title "WeTube $VERSION_NAME" --notes "$NOTES"
 
 URL="https://github.com/$REPO/releases/download/$TAG/$APK"
 
@@ -285,7 +285,7 @@ python3 -c 'import json,sys; d=json.loads(sys.argv[1]); sys.exit(0 if d and d["v
 cat <<DONE
 
 ════════════════════════════════════════════════════════════════════
-Xong. youcar $VERSION_NAME (versionCode $VERSION_CODE) đã phát hành.
+Xong. WeTube $VERSION_NAME (versionCode $VERSION_CODE) đã phát hành.
 
   APK   $URL
   Kiểm  mở app → Cài đặt → Hệ thống → Kiểm tra cập nhật

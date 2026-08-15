@@ -13,6 +13,11 @@ enum LiquidGlassDetail {
   /// Crisp rim and bevel only, no blur passes. For elements that appear in
   /// bulk, such as the 40 keyboard keys, where blurred strokes would add up.
   simple,
+
+  /// No edge at all: the tinted body only. For a surface that should read as
+  /// part of the background rather than as a floating panel — the page-wide
+  /// content slab, which sits beside a rail that paints no edge either.
+  none,
 }
 
 /// Liquid glass surface: a translucent slab with thickness.
@@ -33,12 +38,13 @@ class LiquidGlass extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.tint,
     this.tintStrength = 0.16,
-    this.opacity = 0.55,
+    this.opacity = 0.48,
     this.rimColor,
     this.rimWidth = 1.2,
     this.detail = LiquidGlassDetail.full,
     this.boxShadow,
     this.lifted = true,
+    this.sheen = true,
   });
 
   final Widget child;
@@ -67,6 +73,15 @@ class LiquidGlass extends StatelessWidget {
   /// Soft drop shadow so the slab floats above the background.
   final bool lifted;
 
+  /// Diagonal light sweep across the face of the glass.
+  ///
+  /// This is what sells "you are looking through something" without a
+  /// [BackdropFilter]: a real frost pass would read the whole screen texture
+  /// per surface, which these boxes cannot afford, while a second gradient in
+  /// the same [ShapeDecoration] costs nothing measurable. Turn it off for
+  /// surfaces that carry busy imagery of their own (thumbnails, video).
+  final bool sheen;
+
   @override
   Widget build(BuildContext context) {
     final shape = capsule
@@ -90,6 +105,15 @@ class LiquidGlass extends StatelessWidget {
       ...?boxShadow,
     ];
 
+    final edge = detail == LiquidGlassDetail.none
+        ? null
+        : _LiquidEdgePainter(
+            shape: shape,
+            rimColor: rimColor ?? Colors.white,
+            rimWidth: rimWidth,
+            detail: detail,
+          );
+
     return DecoratedBox(
       decoration: ShapeDecoration(
         shape: shape,
@@ -112,26 +136,38 @@ class LiquidGlass extends StatelessWidget {
           // than the surface is pinned to the top edge instead of filling it.
           fit: StackFit.passthrough,
           children: [
+            // Under the content, so text keeps its full contrast.
+            if (sheen)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: const Alignment(-1, -1.4),
+                        end: const Alignment(0.7, 1),
+                        colors: [
+                          Colors.white.withValues(alpha: 0.09),
+                          Colors.white.withValues(alpha: 0.02),
+                          Colors.transparent,
+                        ],
+                        stops: const [0, 0.34, 0.62],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             Padding(padding: padding, child: child),
             // Painted last so the rim stays crisp over the content. Isolated on
             // its own layer so the shader/blur edge rasterizes once and is
             // reused instead of being redrawn every time the child content (or
             // a parent focus animation) repaints — the edge itself only changes
             // when the surface's own paint inputs change.
-            Positioned.fill(
-              child: IgnorePointer(
-                child: RepaintBoundary(
-                  child: CustomPaint(
-                    painter: _LiquidEdgePainter(
-                      shape: shape,
-                      rimColor: rimColor ?? Colors.white,
-                      rimWidth: rimWidth,
-                      detail: detail,
-                    ),
-                  ),
+            if (edge != null)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: RepaintBoundary(child: CustomPaint(painter: edge)),
                 ),
               ),
-            ),
           ],
         ),
       ),

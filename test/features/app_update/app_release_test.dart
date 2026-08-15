@@ -6,7 +6,7 @@ void main() {
     final release = AppRelease.tryParse(<String, Object?>{
       'version_code': 7,
       'version_name': '1.2.0',
-      'apk_url': 'https://example.invalid/youcar-1.2.0.apk',
+      'apk_url': 'https://example.invalid/wetube-1.2.0.apk',
       'sha256': 'abc123',
       'notes': 'Sửa lỗi phát nhạc nền',
     });
@@ -14,7 +14,7 @@ void main() {
     expect(release, isNotNull);
     expect(release!.versionCode, 7);
     expect(release.versionName, '1.2.0');
-    expect(release.apkUrl, 'https://example.invalid/youcar-1.2.0.apk');
+    expect(release.apkUrl, 'https://example.invalid/wetube-1.2.0.apk');
     expect(release.sha256, 'abc123');
     expect(release.notes, 'Sửa lỗi phát nhạc nền');
   });

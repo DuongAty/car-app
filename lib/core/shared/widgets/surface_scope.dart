@@ -38,10 +38,14 @@ class ContentSlab extends StatelessWidget {
   Widget build(BuildContext context) {
     return LiquidGlass(
       radius: AppRadius.md,
-      opacity: 0.5,
-      padding: const EdgeInsets.all(1),
+      opacity: 0.38,
+      // No rim and no lift shadow: this is the page's whole content area, and
+      // it sits beside a nav rail that paints no edge either. A frame around it
+      // read as a panel floating on the screen instead of as the screen.
+      detail: LiquidGlassDetail.none,
+      lifted: false,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.md - 1),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: SurfaceScope(child: child),
       ),
     );

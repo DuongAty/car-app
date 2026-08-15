@@ -12,8 +12,7 @@ import '../../../../core/theme/app_icons.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../playback/presentation/providers/now_playing_controller.dart';
-import '../../../playback/presentation/widgets/app_control_bar.dart';
-import '../../../song_browser/presentation/widgets/main_top_bar.dart';
+import '../../../navigation/presentation/widgets/main_nav_rail.dart';
 import '../../../song_browser/presentation/widgets/preview_player.dart';
 import '../providers/favorites_controller.dart';
 
@@ -41,7 +40,10 @@ class FavoritesPage extends ConsumerWidget {
       },
       child: KaraokeShell(
         chromeVisible: mode != PlayerViewMode.fullscreen,
-        topBar: MainTopBar(selectedIndex: null),
+        navRail: const MainNavRail(
+          selectedId: NavDestination.favorites,
+          hasStagePlayer: true,
+        ),
         body: Builder(
           builder: (context) {
             final Widget row = Row(
@@ -127,7 +129,6 @@ class FavoritesPage extends ConsumerWidget {
                 : ContentSlab(child: row);
           },
         ),
-        bottomBar: const AppControlBar(hasStagePlayer: true),
       ),
     );
   }

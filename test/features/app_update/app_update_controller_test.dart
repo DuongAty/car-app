@@ -14,7 +14,7 @@ import '../../support/fake_app_update_system.dart';
 const _release = AppRelease(
   versionCode: 7,
   versionName: '1.2.0',
-  apkUrl: 'https://example.invalid/youcar.apk',
+  apkUrl: 'https://example.invalid/wetube.apk',
   sha256: 'goodhash',
   notes: 'Sửa lỗi',
 );
@@ -100,7 +100,7 @@ void main() {
     await controller.check();
     await controller.downloadAndInstall();
 
-    expect(system.installedPath, '/tmp/updates/youcar-7.apk');
+    expect(system.installedPath, '/tmp/updates/wetube-7.apk');
     expect(controller.state.status, AppUpdateStatus.installRequested);
     // The row must always offer a pressable action from here — not busy.
     expect(controller.state.error, AppUpdateError.none);
@@ -124,7 +124,7 @@ void main() {
     expect(controller.state.error, AppUpdateError.checksum);
     expect(system.installedPath, isNull);
     // Left on disk, a bad file would be installed by the next attempt.
-    expect(system.deletedPaths, ['/tmp/updates/youcar-7.apk']);
+    expect(system.deletedPaths, ['/tmp/updates/wetube-7.apk']);
   });
 
   test('a_failed_download_is_a_retryable_error_and_does_not_install', () async {
@@ -230,7 +230,7 @@ void main() {
 
     // The installer was reopened on the same path...
     expect(system.installApkCallCount, 2);
-    expect(system.installedPath, '/tmp/updates/youcar-7.apk');
+    expect(system.installedPath, '/tmp/updates/wetube-7.apk');
     // ...and no second download happened for it.
     expect(downloader.callCount, 1);
     expect(controller.state.status, AppUpdateStatus.installRequested);
@@ -255,7 +255,7 @@ void main() {
     expect(controller.state.status, AppUpdateStatus.error);
     expect(controller.state.error, AppUpdateError.install);
     // The file stays put — a later retry must still be able to reuse it.
-    expect(controller.state.downloadedPath, '/tmp/updates/youcar-7.apk');
+    expect(controller.state.downloadedPath, '/tmp/updates/wetube-7.apk');
 
     await controller.reopenInstaller();
 
@@ -374,135 +374,123 @@ void main() {
     },
   );
 
-  test(
-    'a_platform_cancellation_keeps_the_verified_file_and_offers_reinstall_'
-    'instead_of_a_full_redownload',
-    () async {
-      // F1: STATUS_FAILURE_ABORTED (Back/Cancel on the system confirmation
-      // dialog) must not be treated the same as a genuine rejection — the
-      // checksum-verified 145MB file is still good.
-      final system = FakeAppUpdateSystem(versionCode: 1);
-      final downloader = FakeApkDownloader(digest: 'goodhash');
-      final controller = build(
-        repository: FakeAppUpdateRepository(release: _release),
-        downloader: downloader,
-        system: system,
-      );
+  test('a_platform_cancellation_keeps_the_verified_file_and_offers_reinstall_'
+      'instead_of_a_full_redownload', () async {
+    // F1: STATUS_FAILURE_ABORTED (Back/Cancel on the system confirmation
+    // dialog) must not be treated the same as a genuine rejection — the
+    // checksum-verified 145MB file is still good.
+    final system = FakeAppUpdateSystem(versionCode: 1);
+    final downloader = FakeApkDownloader(digest: 'goodhash');
+    final controller = build(
+      repository: FakeAppUpdateRepository(release: _release),
+      downloader: downloader,
+      system: system,
+    );
 
-      await controller.check();
-      await controller.downloadAndInstall();
-      expect(controller.state.status, AppUpdateStatus.installRequested);
+    await controller.check();
+    await controller.downloadAndInstall();
+    expect(controller.state.status, AppUpdateStatus.installRequested);
 
-      system.emitInstallStatus(AppInstallOutcome.cancelled);
-      await pumpEventQueue();
+    system.emitInstallStatus(AppInstallOutcome.cancelled);
+    await pumpEventQueue();
 
-      expect(controller.state.status, AppUpdateStatus.error);
-      expect(controller.state.error, AppUpdateError.installCancelled);
-      // The file must survive — a mis-tap must never force a re-download.
-      expect(controller.state.downloadedPath, '/tmp/updates/youcar-7.apk');
-      expect(system.deletedPaths, isEmpty);
+    expect(controller.state.status, AppUpdateStatus.error);
+    expect(controller.state.error, AppUpdateError.installCancelled);
+    // The file must survive — a mis-tap must never force a re-download.
+    expect(controller.state.downloadedPath, '/tmp/updates/wetube-7.apk');
+    expect(system.deletedPaths, isEmpty);
 
-      // Pressing again reopens the installer on the same file, no re-download.
-      await controller.reopenInstaller();
+    // Pressing again reopens the installer on the same file, no re-download.
+    await controller.reopenInstaller();
 
-      expect(downloader.callCount, 1);
-      expect(system.installApkCallCount, 2);
-      expect(controller.state.status, AppUpdateStatus.installRequested);
-    },
-  );
+    expect(downloader.callCount, 1);
+    expect(system.installApkCallCount, 2);
+    expect(controller.state.status, AppUpdateStatus.installRequested);
+  });
 
-  test(
-    'a_fast_failure_outcome_that_lands_before_the_hand_off_await_resolves_'
-    'is_not_overwritten_by_installRequested',
-    () async {
-      // F2: the receiver's outcome callback and `_handOff`'s own await of
-      // `installApk` are delivered from different threads, so their order is
-      // not deterministic. A fast STATUS_FAILURE_STORAGE-style outcome must
-      // survive even if it lands before `installApk` itself resolves.
-      final gate = Completer<void>();
-      final system = FakeAppUpdateSystem(versionCode: 1, installApkGate: gate);
-      final controller = build(
-        repository: FakeAppUpdateRepository(release: _release),
-        downloader: FakeApkDownloader(digest: 'goodhash'),
-        system: system,
-      );
+  test('a_fast_failure_outcome_that_lands_before_the_hand_off_await_resolves_'
+      'is_not_overwritten_by_installRequested', () async {
+    // F2: the receiver's outcome callback and `_handOff`'s own await of
+    // `installApk` are delivered from different threads, so their order is
+    // not deterministic. A fast STATUS_FAILURE_STORAGE-style outcome must
+    // survive even if it lands before `installApk` itself resolves.
+    final gate = Completer<void>();
+    final system = FakeAppUpdateSystem(versionCode: 1, installApkGate: gate);
+    final controller = build(
+      repository: FakeAppUpdateRepository(release: _release),
+      downloader: FakeApkDownloader(digest: 'goodhash'),
+      system: system,
+    );
 
-      await controller.check();
-      final install = controller.downloadAndInstall();
-      // Flush the microtasks between here and `installApk`'s gate (canInstall
-      // check, cache dir lookup, the fake download, checksum verification) so
-      // execution actually parks inside `_handOff`'s gated `installApk` call.
-      await pumpEventQueue();
-      // downloadAndInstall is still suspended inside `installApk` (the gate),
-      // so state is `installing` right now — exactly the window in which the
-      // real receiver callback can race ahead of the method channel result.
-      expect(controller.state.status, AppUpdateStatus.installing);
+    await controller.check();
+    final install = controller.downloadAndInstall();
+    // Flush the microtasks between here and `installApk`'s gate (canInstall
+    // check, cache dir lookup, the fake download, checksum verification) so
+    // execution actually parks inside `_handOff`'s gated `installApk` call.
+    await pumpEventQueue();
+    // downloadAndInstall is still suspended inside `installApk` (the gate),
+    // so state is `installing` right now — exactly the window in which the
+    // real receiver callback can race ahead of the method channel result.
+    expect(controller.state.status, AppUpdateStatus.installing);
 
-      system.emitInstallStatus(AppInstallOutcome.failed);
-      await pumpEventQueue();
+    system.emitInstallStatus(AppInstallOutcome.failed);
+    await pumpEventQueue();
 
-      expect(controller.state.status, AppUpdateStatus.error);
-      expect(controller.state.error, AppUpdateError.installRejected);
+    expect(controller.state.status, AppUpdateStatus.error);
+    expect(controller.state.error, AppUpdateError.installRejected);
 
-      // Now let the hand-off's own await finish successfully — its stale
-      // "installer opened" write must not clobber the failure that already
-      // landed.
-      gate.complete();
-      await install;
+    // Now let the hand-off's own await finish successfully — its stale
+    // "installer opened" write must not clobber the failure that already
+    // landed.
+    gate.complete();
+    await install;
 
-      expect(controller.state.status, AppUpdateStatus.error);
-      expect(controller.state.error, AppUpdateError.installRejected);
-    },
-  );
+    expect(controller.state.status, AppUpdateStatus.error);
+    expect(controller.state.error, AppUpdateError.installRejected);
+  });
 
-  test(
-    'a_successful_install_deletes_the_cached_apk_so_it_does_not_sit_in_'
-    'cache_forever',
-    () async {
-      // F3: nothing can ever reuse this file again once the platform reports
-      // STATUS_SUCCESS, so it must not linger in cache/updates.
-      final system = FakeAppUpdateSystem(versionCode: 1);
-      final controller = build(
-        repository: FakeAppUpdateRepository(release: _release),
-        downloader: FakeApkDownloader(digest: 'goodhash'),
-        system: system,
-      );
+  test('a_successful_install_deletes_the_cached_apk_so_it_does_not_sit_in_'
+      'cache_forever', () async {
+    // F3: nothing can ever reuse this file again once the platform reports
+    // STATUS_SUCCESS, so it must not linger in cache/updates.
+    final system = FakeAppUpdateSystem(versionCode: 1);
+    final controller = build(
+      repository: FakeAppUpdateRepository(release: _release),
+      downloader: FakeApkDownloader(digest: 'goodhash'),
+      system: system,
+    );
 
-      await controller.check();
-      await controller.downloadAndInstall();
+    await controller.check();
+    await controller.downloadAndInstall();
 
-      system.emitInstallStatus(AppInstallOutcome.success);
-      await pumpEventQueue();
+    system.emitInstallStatus(AppInstallOutcome.success);
+    await pumpEventQueue();
 
-      expect(controller.state.status, AppUpdateStatus.installed);
-      expect(system.deletedPaths, ['/tmp/updates/youcar-7.apk']);
-    },
-  );
+    expect(controller.state.status, AppUpdateStatus.installed);
+    expect(system.deletedPaths, ['/tmp/updates/wetube-7.apk']);
+  });
 
-  test(
-    'a_platform_install_rejection_deletes_the_cached_apk_since_it_can_never_'
-    'be_reused',
-    () async {
-      // F3: a terminal failure (bad signature, conflict, incompatible...)
-      // also frees the cache — only cancellation (F1) keeps the file.
-      final system = FakeAppUpdateSystem(versionCode: 1);
-      final controller = build(
-        repository: FakeAppUpdateRepository(release: _release),
-        downloader: FakeApkDownloader(digest: 'goodhash'),
-        system: system,
-      );
+  test('a_platform_install_rejection_deletes_the_cached_apk_since_it_can_never_'
+      'be_reused', () async {
+    // F3: a terminal failure (bad signature, conflict, incompatible...)
+    // also frees the cache — only cancellation (F1) keeps the file.
+    final system = FakeAppUpdateSystem(versionCode: 1);
+    final controller = build(
+      repository: FakeAppUpdateRepository(release: _release),
+      downloader: FakeApkDownloader(digest: 'goodhash'),
+      system: system,
+    );
 
-      await controller.check();
-      await controller.downloadAndInstall();
+    await controller.check();
+    await controller.downloadAndInstall();
 
-      system.emitInstallStatus(AppInstallOutcome.failed);
-      await pumpEventQueue();
+    system.emitInstallStatus(AppInstallOutcome.failed);
+    await pumpEventQueue();
 
-      expect(controller.state.status, AppUpdateStatus.error);
-      expect(controller.state.error, AppUpdateError.installRejected);
-      expect(system.deletedPaths, ['/tmp/updates/youcar-7.apk']);
-    },
-  );
+    expect(controller.state.status, AppUpdateStatus.error);
+    expect(controller.state.error, AppUpdateError.installRejected);
+    expect(system.deletedPaths, ['/tmp/updates/wetube-7.apk']);
+  });
 
   test('the_pending_user_action_outcome_leaves_the_row_where_it_is', () async {
     final system = FakeAppUpdateSystem(versionCode: 1);
@@ -518,7 +506,7 @@ void main() {
     system.emitInstallStatus(AppInstallOutcome.pendingUserAction);
 
     expect(controller.state.status, AppUpdateStatus.installRequested);
-    expect(controller.state.downloadedPath, '/tmp/updates/youcar-7.apk');
+    expect(controller.state.downloadedPath, '/tmp/updates/wetube-7.apk');
   });
 
   test('granting_the_install_permission_is_not_a_dead_end', () async {
@@ -570,7 +558,7 @@ void main() {
         versionCode: 1,
         installApkError: PlatformException(
           code: 'install_file_missing',
-          message: 'No file at /tmp/updates/youcar-7.apk.',
+          message: 'No file at /tmp/updates/wetube-7.apk.',
         ),
       );
       final downloader = FakeApkDownloader(digest: 'goodhash');

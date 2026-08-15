@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In vi, this message translates to:
-  /// **'youcar'**
+  /// **'WeTube'**
   String get appTitle;
 
   /// No description provided for @languageVi.
@@ -871,6 +871,12 @@ abstract class AppLocalizations {
   /// In vi, this message translates to:
   /// **'Yêu thích'**
   String get hintFavorites;
+
+  /// Left navigation rail label for the favorites screen
+  ///
+  /// In vi, this message translates to:
+  /// **'Yêu thích'**
+  String get navFavorites;
 
   /// No description provided for @favoriteAddTooltip.
   ///

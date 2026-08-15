@@ -51,7 +51,7 @@ These patterns are already applied across the codebase. Follow them when adding 
 
 ### Rebuild scoping (Riverpod)
 - Watch the narrowest slice with `.select`. Never `ref.watch(wholeProvider)` at a page root when only part of the state is rendered — wrap each panel in its own `Consumer` that selects just its slice (see `song_browser_page.dart`, `settings_page.dart`, `source_selection_page.dart`).
-- Isolate the ~1s playback tick in tiny leaf `ConsumerWidget`s so it never rebuilds a large subtree (see `preview_player.dart` `_ProgressSection`/`_PlayPauseButton`, `bottom_mini_player.dart` `_MiniProgressTrack`).
+- Isolate the ~1s playback tick in tiny leaf `ConsumerWidget`s so it never rebuilds a large subtree (see `preview_player.dart` `_ProgressSection`/`_PlayPauseButton`, `rail_mini_player.dart` `_RailProgressTrack`).
 - Watch per-row state (favorite membership, queue selection) inside the row via `.select`, not by threading it from a panel that watches the whole list (see `core/shared/widgets/favorite_toggle.dart`, `selected_queue_panel.dart`).
 - GOTCHA: `songBrowserProvider` is `autoDispose.family` and depends on `nowPlayingProvider.notifier`, so it is recreated when playback state rebuilds (e.g. a settings change). Widgets that hold its controller across events must use `ref.watch(provider.notifier)` (NOT `ref.read`), or their callbacks can call a disposed controller.
 - GOTCHA: a provider that owns expensive native resources (video/audio decoders) must NOT `ref.watch` a volatile setting in its create body to seed a value — that makes the provider a dependency of the setting, so changing it (e.g. dragging the volume slider) DISPOSES and recreates the provider, tearing down the live decoder and stopping playback. Seed with `ref.read` and apply ongoing changes in place via `ref.listen` (see `nowPlayingProvider` seeding `musicVolume`/`visualizerEnabled`/`videoQuality`).
@@ -63,7 +63,7 @@ These patterns are already applied across the codebase. Follow them when adding 
 - Keep `MaskFilter.blur` and `BoxShadow.blurRadius` small (≤16). A wide gaussian re-rasterized per frame is the single costliest thing on this GPU.
 
 ### Caching & network (avoid redundant slow calls)
-- Recommendations: stale-while-revalidate, persisted (`RecommendationsCacheRepository`).
+- Recommendations: stale-while-revalidate, persisted (`RecommendationsCacheRepository`). They fill the results column whenever `SearchState` is `SearchIdle` (`SuggestionsPanel`), so the column is never an empty "type something" placeholder; a submitted search swaps in `SearchResultsPanel`.
 - Category/artist/typed search results: in-session `SearchResultsCache` + in-flight/duplicate-query dedupe in `SongBrowserController._runSearch`.
 - Playable links: 90s in-memory TTL cache in `NowPlayingController`, evicted on playback failure (links expire) — kills re-resolves on repeat-one/previous/repeat-all.
 - Native SDK init is deferred: `main()` fires `ensureMusicSdkInitialized()` without awaiting; `MusicSdkSongRepository` awaits it before its first call.
@@ -105,6 +105,66 @@ Current features: `song_browser` (search/filter songs, virtual keyboard input, q
 
 Do not place unrelated screens, widgets, and logic in one file. Keep each feature isolated and easy to navigate.
 
+## App Shell And Navigation
+
+Chrome is one left navigation rail, never a top bar or a bottom bar. The screen
+on a car head unit and a landscape karaoke box is short and wide, so anything
+stacked above or below the body comes straight out of the video stage's height;
+a rail costs width, which is the dimension there is spare of.
+
+- `KaraokeShell` takes `navRail` + `body` and lays them out in a Row. Passing
+  `chromeVisible: false` (fullscreen playback) drops the rail from the tree
+  entirely — not `Offstage`, which would still cost layout.
+- Every page passes the same `MainNavRail`
+  (`lib/features/navigation/presentation/widgets/`), which owns the brand mark,
+  the destinations, the language switch, and the compact now-playing block.
+  Pages name their active destination with a `NavDestination` id, never an
+  index.
+- Neither the rail nor `ContentSlab` paints an edge: no rim, no dividers, no
+  lift shadow (`LiquidGlassDetail.none`). The content area is the screen, not a
+  panel floating on it. Framed `LiquidGlass` stays for things that really are
+  discrete objects — the player's status chips, focus plates, cards.
+- The rail paints no surface of its own at all.
+  A single hairline `AppLayout.navRailInset` (10) is the ONLY margin on screen
+  when the rail is up: all four shell edges plus the gap between the rail and
+  the body. The rail itself has no local inset — there is deliberately no
+  second value to keep in sync. Change that one token, not the individual
+  paddings. Its
+  width (`AppLayout.navRailWidth`, 104) is sized to the longest destination
+  label measured on device (EN "CATEGORIES", ~73 logical px), not rounded up:
+  it is capped even on a 1920 display, because extra width there belongs to the
+  stage. `RailMiniPlayer`'s transport row is in a `FittedBox` for the same
+  reason — it is wider than the narrowest rail and must scale, not overflow. Only its
+  active/focused destination draws a plate. Do not give it a background back:
+  every pixel it does not need belongs to the stage.
+- The rail's volume control (`VolumeRailEntry`) is the speaker icon plus the
+  level, at the foot of the rail above the VI/EN chip; activating it floats a
+  vertical slider popup directly above the icon via `OverlayPortal` +
+  `LayerLink`. An overlay, never an inline expansion — opening it must not
+  shift the destinations under the user's finger. It lives in the footer, NOT
+  in `AppNavRail.items` — a `NavRailItem` is rebuilt from `MainNavRail`, and
+  watching `volumeProvider` up there would rebuild all eight destinations on
+  every volume step, including the hardware keys.
+- The track uses a raw `Listener`, not `onVerticalDragUpdate`: the rail's
+  `SingleChildScrollView` is a vertical-drag competitor and wins the gesture
+  arena, so a drag recognizer here only ever sees the initial touch. Widget
+  tests do not catch this — it has to be dragged on a device.
+- It writes through `SettingsController.setMasterVolume`, not straight to
+  `volumeProvider`, so the level is persisted and Settings → Âm thanh shows the
+  same number. It binds left/right, never up/down: up/down traverse the rail,
+  and swallowing them would trap focus with no way back to the destinations.
+- Below the 1366x768 landscape floor `KaraokeShell` scales the UI down, but the
+  canvas takes the DISPLAY's aspect ratio, never a fixed 1366x768. Fitting a
+  fixed canvas into a differently-shaped display (a 1280x720 head unit) left
+  black bars down both sides that read as the rail floating off the edge.
+- `AppNavRail` (`lib/core/shared/widgets/`) is the presentation half: it knows
+  nothing about routes or providers. Add destinations through `MainNavRail`.
+- A page that handles a destination in place rather than by navigating passes an
+  override (`onSearchSelected`, `onCategoriesSelected`, `onQueueSelected`) —
+  the song browser switches tabs instead of pushing a route.
+- There is no bottom hint legend any more. Anything a hint used to reach must be
+  a rail destination or live inside the page it belongs to.
+
 ## State Management
 
 Riverpod is the default for new work (`flutter_riverpod`). If a feature already uses BLoC, stay consistent within that feature rather than mixing patterns in the same flow. Keep business logic in controllers/providers, not widgets — widgets read state, render state, and forward user actions (see `SongBrowserController` / `AppLocaleController` for the expected shape: `StateNotifier` + immutable state + intent methods).
@@ -117,7 +177,7 @@ This is the default and required visual language for every screen unless a user 
 - D-pad/remote focus must be obvious (brighter border, stronger glow, or higher-contrast background) — touch and focus states must feel like one system.
 - Implement the neon look with lightweight effects suitable for 2GB RAM boxes. Prefer crisp rims and restrained glow over blur-heavy decoration, animated particles, or moving backgrounds.
 - Tokens first: never hardcode colors, spacing, radius, elevation, or text styles in feature screens — reuse/extend `lib/core/theme/app_colors.dart`, `app_spacing.dart`, `app_radius.dart`, `app_text_styles.dart`, `app_glows.dart`, `app_theme.dart`. Add a new token there before repeating a raw value.
-- Build shared widgets in `lib/core/shared/widgets/` before duplicating a visual pattern (cards, top nav, bottom hint bar, search shell, virtual keyboard keys, etc.) — extend existing ones like `GlowCard`, `KaraokeShell`, `AppTopNav`, `AppBottomHintBar`, `FocusableTile`, `VirtualKeyTile` rather than rebuilding.
+- Build shared widgets in `lib/core/shared/widgets/` before duplicating a visual pattern (cards, navigation rail, search shell, virtual keyboard keys, etc.) — extend existing ones like `GlowCard`, `KaraokeShell`, `AppNavRail`, `LiquidGlass`, `FocusableTile`, `VirtualKeyTile` rather than rebuilding.
 - When editing one area, don't redesign it in isolation — match existing tokens/panel shapes/focus treatment so it still looks like the same product.
 - Keep text, controls, and focus affordances readable on Android boxes and car screens viewed from a distance. Do not optimize visual density only for hand-held phones.
 

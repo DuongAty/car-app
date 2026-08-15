@@ -6,9 +6,7 @@ import '../../../../core/shared/widgets/karaoke_shell.dart';
 import '../../../../core/shared/widgets/surface_scope.dart';
 import '../../../../core/theme/app_layout.dart';
 import '../../../playback/presentation/providers/now_playing_controller.dart';
-import '../../../playback/presentation/widgets/app_control_bar.dart';
-import '../../../song_browser/data/mock/song_browser_mock_data.dart';
-import '../../../song_browser/presentation/widgets/main_top_bar.dart';
+import '../../../navigation/presentation/widgets/main_nav_rail.dart';
 import '../../../song_browser/presentation/widgets/preview_player.dart';
 import '../widgets/selected_queue_panel.dart';
 
@@ -35,7 +33,10 @@ class SelectedQueuePage extends ConsumerWidget {
       },
       child: KaraokeShell(
         chromeVisible: mode != PlayerViewMode.fullscreen,
-        topBar: MainTopBar(selectedIndex: SongBrowserMockData.selectedTabIndex),
+        navRail: const MainNavRail(
+          selectedId: NavDestination.queue,
+          hasStagePlayer: true,
+        ),
         body: Builder(
           builder: (context) {
             final Widget row = Row(
@@ -85,7 +86,6 @@ class SelectedQueuePage extends ConsumerWidget {
                 : ContentSlab(child: row);
           },
         ),
-        bottomBar: const AppControlBar(hasStagePlayer: true),
       ),
     );
   }

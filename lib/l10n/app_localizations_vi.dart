@@ -9,7 +9,7 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appTitle => 'youcar';
+  String get appTitle => 'WeTube';
 
   @override
   String get languageVi => 'VI';
@@ -425,6 +425,9 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get hintFavorites => 'Yêu thích';
+
+  @override
+  String get navFavorites => 'Yêu thích';
 
   @override
   String get favoriteAddTooltip => 'Thêm vào yêu thích';

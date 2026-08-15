@@ -1,6 +1,6 @@
 {
   "@@locale": "vi",
-  "appTitle": "youcar",
+  "appTitle": "WeTube",
   "languageVi": "VI",
   "languageEn": "EN",
   "homeWelcome": "Chọn nguồn nhạc để bắt đầu",
@@ -155,6 +155,10 @@
     }
   },
   "hintFavorites": "Yêu thích",
+  "navFavorites": "Yêu thích",
+  "@navFavorites": {
+    "description": "Left navigation rail label for the favorites screen"
+  },
   "favoriteAddTooltip": "Thêm vào yêu thích",
   "favoriteRemoveTooltip": "Bỏ khỏi yêu thích",
   "favoritesEmpty": "Chưa có bài hát yêu thích nào.\nBấm ♥ ở bài hát để thêm.",

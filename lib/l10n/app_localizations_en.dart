@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'youcar';
+  String get appTitle => 'WeTube';
 
   @override
   String get languageVi => 'VI';
@@ -426,6 +426,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hintFavorites => 'Favorites';
+
+  @override
+  String get navFavorites => 'Favorites';
 
   @override
   String get favoriteAddTooltip => 'Add to favorites';

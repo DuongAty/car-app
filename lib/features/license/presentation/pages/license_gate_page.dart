@@ -45,7 +45,6 @@ class LicenseGatePage extends ConsumerWidget {
         }
       },
       child: KaraokeShell(
-        topBar: const SizedBox.shrink(),
         body: switch (state.status) {
           LicenseGateStatus.needsKey => _NeedsKeyBody(state: state),
           LicenseGateStatus.pending => _StatusPanel(
@@ -131,7 +130,6 @@ class LicenseGatePage extends ConsumerWidget {
             actions: const [],
           ),
         },
-        bottomBar: const SizedBox.shrink(),
       ),
     );
   }

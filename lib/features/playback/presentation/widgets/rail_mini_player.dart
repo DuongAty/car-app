@@ -9,18 +9,22 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../queue/presentation/providers/queue_playback_controller.dart';
 import '../providers/now_playing_controller.dart';
 
-class BottomMiniPlayer extends ConsumerWidget {
-  const BottomMiniPlayer({super.key, this.onTap});
+/// Compact now-playing block for the foot of the left navigation rail.
+///
+/// Stage-less pages (the source picker, settings) used to surface the transport
+/// in the bottom bar; with that bar gone it stacks into the rail instead, so
+/// whatever is playing stays reachable from every screen.
+class RailMiniPlayer extends ConsumerWidget {
+  const RailMiniPlayer({super.key, this.onTap});
 
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final queuePlayback = ref.read(queuePlaybackControllerProvider.notifier);
-    // Only the now-playing title needs the coarse playback slice; it does not
-    // change on the per-second tick. The play/pause icon and progress fill are
-    // isolated in leaf Consumers so this bar does not re-lay-out its whole Row
-    // once a second on otherwise-static pages.
+    // Only the title needs the coarse playback slice; it does not change on the
+    // per-second tick. The play/pause icon and the progress fill are isolated in
+    // leaf Consumers below so this block does not re-lay-out once a second.
     final playback = ref.watch(nowPlayingProvider.select((s) => s.playback));
     final songTitle = switch (playback) {
       PlaybackReady(:final song) => song.title,
@@ -33,54 +37,67 @@ class BottomMiniPlayer extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return Row(
-      children: [
-        _MiniTransportButton(
-          icon: AppIcons.previous,
-          onPressed: queuePlayback.playPrevious,
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        const _MiniPlayPauseButton(),
-        const SizedBox(width: AppSpacing.sm),
-        _MiniTransportButton(
-          icon: AppIcons.next,
-          onPressed: queuePlayback.playNext,
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xxs,
+        vertical: AppSpacing.xxs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          InkWell(
             onTap: onTap,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    songTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  const _MiniProgressTrack(),
-                ],
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
+              child: Text(
+                songTitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  fontSize: 12,
+                  height: 1.25,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: AppSpacing.xxs),
+          const _RailProgressTrack(),
+          const SizedBox(height: AppSpacing.xxs),
+          // Scaled down rather than overflowing: the rail is sized to its
+          // labels, and three round buttons plus their gaps are wider than the
+          // narrowest rail (104) allows.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _RailTransportButton(
+                  icon: AppIcons.previous,
+                  onPressed: queuePlayback.playPrevious,
+                ),
+                const SizedBox(width: AppSpacing.xxs),
+                const _RailPlayPauseButton(),
+                const SizedBox(width: AppSpacing.xxs),
+                _RailTransportButton(
+                  icon: AppIcons.next,
+                  onPressed: queuePlayback.playNext,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 /// Play/pause icon isolated so the tick rebuilds only this button.
-class _MiniPlayPauseButton extends ConsumerWidget {
-  const _MiniPlayPauseButton();
+class _RailPlayPauseButton extends ConsumerWidget {
+  const _RailPlayPauseButton();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -95,15 +112,15 @@ class _MiniPlayPauseButton extends ConsumerWidget {
     return CircleIconButton(
       icon: isPlaying ? AppIcons.pause : AppIcons.play,
       onPressed: notifier.togglePlayPause,
-      size: 38,
-      iconSize: 24,
+      size: 34,
+      iconSize: 21,
       tint: AppColors.greenDeep,
     );
   }
 }
 
-class _MiniTransportButton extends StatelessWidget {
-  const _MiniTransportButton({required this.icon, required this.onPressed});
+class _RailTransportButton extends StatelessWidget {
+  const _RailTransportButton({required this.icon, required this.onPressed});
 
   final IconData icon;
   final VoidCallback onPressed;
@@ -113,17 +130,17 @@ class _MiniTransportButton extends StatelessWidget {
     return CircleIconButton(
       icon: icon,
       onPressed: onPressed,
-      size: 34,
-      iconSize: 22,
+      size: 28,
+      iconSize: 17,
       opacity: 0.38,
     );
   }
 }
 
-/// Progress fill for the mini player. A leaf Consumer so the once-per-second
-/// position update rebuilds only this 3px bar, not the buttons or title.
-class _MiniProgressTrack extends ConsumerWidget {
-  const _MiniProgressTrack();
+/// Progress fill. A leaf Consumer so the once-per-second position update
+/// rebuilds only this 3px bar, not the title or the buttons.
+class _RailProgressTrack extends ConsumerWidget {
+  const _RailProgressTrack();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,7 +160,7 @@ class _MiniProgressTrack extends ConsumerWidget {
         final filled = constraints.maxWidth * ratio;
 
         return SizedBox(
-          height: 8,
+          height: 6,
           child: Stack(
             alignment: Alignment.centerLeft,
             children: [

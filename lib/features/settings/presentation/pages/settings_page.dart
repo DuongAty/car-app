@@ -5,9 +5,7 @@ import '../../../../core/shared/widgets/karaoke_shell.dart';
 import '../../../../core/shared/widgets/surface_scope.dart';
 import '../../../favorites/presentation/providers/favorites_controller.dart';
 import '../../../history/presentation/providers/history_controller.dart';
-import '../../../playback/presentation/widgets/app_control_bar.dart';
-import '../../../song_browser/data/mock/song_browser_mock_data.dart';
-import '../../../song_browser/presentation/widgets/main_top_bar.dart';
+import '../../../navigation/presentation/widgets/main_nav_rail.dart';
 import '../../data/models/app_settings.dart';
 import '../providers/settings_controller.dart';
 import '../widgets/settings_content_panel.dart';
@@ -33,9 +31,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       return;
     }
     _initialCategoryApplied = true;
-    ref
-        .read(settingsControllerProvider.notifier)
-        .selectCategory(widget.initialCategory!);
+
+    // Deferred to after the frame: writing to a provider inside a life-cycle
+    // callback throws in Riverpod ("tried to modify a provider while the widget
+    // tree was building"). Only the deep-link path (the rail's "KẾT NỐI ĐT",
+    // which opens the device section) passes a category, so this stayed latent
+    // while nothing did.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref
+          .read(settingsControllerProvider.notifier)
+          .selectCategory(widget.initialCategory!);
+    });
   }
 
   @override
@@ -47,7 +56,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final onClearHistory = ref.read(historyControllerProvider.notifier).clear;
 
     return KaraokeShell(
-      topBar: MainTopBar(selectedIndex: SongBrowserMockData.settingsTabIndex),
+      navRail: const MainNavRail(selectedId: NavDestination.settings),
       // Each column below watches only the slice it needs via its own
       // Consumer. Dragging a slider changes the whole AppSettings, but with
       // this split only the content + preview rebuild per frame — the
@@ -117,7 +126,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           );
         },
       ),
-      bottomBar: const AppControlBar(),
     );
   }
 }

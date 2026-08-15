@@ -22,6 +22,7 @@ class SuggestionsPanel extends ConsumerWidget {
     required this.selectedIndex,
     required this.onSelected,
     required this.onPlay,
+    required this.onAdd,
     required this.source,
   });
 
@@ -29,6 +30,7 @@ class SuggestionsPanel extends ConsumerWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final ValueChanged<SongItem> onPlay;
+  final ValueChanged<SongItem> onAdd;
   final MusicSourceLogoStyle source;
 
   @override
@@ -81,6 +83,7 @@ class SuggestionsPanel extends ConsumerWidget {
                   item: items[index],
                   selected: index == selectedIndex,
                   onPressed: () => onPlay(items[index]),
+                  onAdd: () => onAdd(items[index]),
                   onFocused: () => onSelected(index),
                   source: source,
                 ),

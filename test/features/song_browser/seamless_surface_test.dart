@@ -13,9 +13,9 @@ import 'package:viet_ktv/features/song_browser/presentation/pages/song_browser_p
 import 'package:viet_ktv/features/song_browser/presentation/providers/music_sdk_repository_provider.dart';
 import 'package:viet_ktv/features/song_browser/presentation/widgets/native_song_search_field.dart';
 import 'package:viet_ktv/features/song_browser/presentation/widgets/preview_player.dart';
-import 'package:viet_ktv/features/song_browser/presentation/widgets/search_results_panel.dart';
 import 'package:viet_ktv/features/source_selection/data/models/music_source.dart';
 import 'package:viet_ktv/l10n/app_localizations.dart';
+import 'package:viet_ktv/features/song_browser/presentation/widgets/suggestions_panel.dart';
 
 import '../../support/fake_local_storage_service.dart';
 import '../../support/fake_music_sdk_platform.dart';
@@ -86,9 +86,10 @@ void main() {
       findsOneWidget,
     );
     expect(
+      // Idle on open: the results column shows the suggestions panel.
       find.descendant(
         of: find.byType(ContentSlab),
-        matching: find.byType(SearchResultsPanel),
+        matching: find.byType(SuggestionsPanel),
       ),
       findsOneWidget,
     );

@@ -1,6 +1,6 @@
 {
   "@@locale": "en",
-  "appTitle": "youcar",
+  "appTitle": "WeTube",
   "languageVi": "VI",
   "languageEn": "EN",
   "homeWelcome": "Choose a music source to begin",
@@ -155,6 +155,10 @@
     }
   },
   "hintFavorites": "Favorites",
+  "navFavorites": "Favorites",
+  "@navFavorites": {
+    "description": "Left navigation rail label for the favorites screen"
+  },
   "favoriteAddTooltip": "Add to favorites",
   "favoriteRemoveTooltip": "Remove from favorites",
   "favoritesEmpty": "No favorite songs yet.\nTap the heart on a song to add one.",

@@ -11,26 +11,32 @@ import 'particle_wave.dart';
 /// The shell fills the available Android display and applies bounded responsive
 /// padding so the same karaoke UI can run on TV boxes, car head units, and
 /// smaller Android fallback screens without relying on one fixed canvas.
+///
+/// Chrome is a single left [navRail], never a top or bottom bar: on a car head
+/// unit and a landscape karaoke box the screen is short and wide, so anything
+/// stacked above or below the body comes straight out of the video stage's
+/// height. A rail costs width, which is the dimension there is spare of.
 class KaraokeShell extends StatelessWidget {
   const KaraokeShell({
     super.key,
-    required this.topBar,
     required this.body,
-    required this.bottomBar,
+    this.navRail,
     this.showEdgeParticles = false,
     this.chromeVisible = true,
   });
 
-  final Widget topBar;
   final Widget body;
-  final Widget bottomBar;
+
+  /// Left navigation rail. Null on the screens that have no navigation at all
+  /// (splash, license gate).
+  final Widget? navRail;
 
   /// Red/purple particle streams along the lower corners, used on the source
   /// picker where the background is part of the composition.
   final bool showEdgeParticles;
 
-  /// When false the top and bottom bars are not built at all, giving the body
-  /// the whole shell. Used by the player's fullscreen mode.
+  /// When false the rail is not built at all, giving the body the whole shell.
+  /// Used by the player's fullscreen mode.
   final bool chromeVisible;
 
   @override
@@ -53,10 +59,19 @@ class KaraokeShell extends StatelessWidget {
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final isCompactLandscape =
-                  constraints.maxWidth < AppLayout.minimumLandscapeWidth ||
-                  constraints.maxHeight < AppLayout.minimumLandscapeHeight ||
-                  constraints.maxWidth < constraints.maxHeight;
+              // Portrait is a fallback, not a supported layout: fit a whole
+              // landscape canvas into it and accept the letterboxing.
+              final isPortrait = constraints.maxWidth < constraints.maxHeight;
+              // Below the landscape floor the UI is scaled down rather than
+              // allowed to overflow. The canvas is then sized to the display's
+              // OWN aspect ratio, not to a fixed 1366x768 — fitting a fixed
+              // canvas into a display of a different ratio (e.g. a 1280x720
+              // head unit) left black bars down both sides, which read as the
+              // nav rail being pushed away from the screen edge.
+              final scale = math.min(
+                constraints.maxWidth / AppLayout.minimumLandscapeWidth,
+                constraints.maxHeight / AppLayout.minimumLandscapeHeight,
+              );
 
               return Stack(
                 children: [
@@ -104,7 +119,7 @@ class KaraokeShell extends StatelessWidget {
                     ),
                   ),
                   Positioned.fill(
-                    child: isCompactLandscape
+                    child: isPortrait
                         ? Center(
                             child: FittedBox(
                               fit: BoxFit.contain,
@@ -112,19 +127,33 @@ class KaraokeShell extends StatelessWidget {
                                 width: AppLayout.minimumLandscapeWidth,
                                 height: AppLayout.minimumLandscapeHeight,
                                 child: _ShellContent(
-                                  topBar: topBar,
+                                  navRail: navRail,
                                   body: body,
-                                  bottomBar: bottomBar,
                                   chromeVisible: chromeVisible,
                                 ),
                               ),
                             ),
                           )
-                        : _ShellContent(
-                            topBar: topBar,
+                        : scale >= 1
+                        ? _ShellContent(
+                            navRail: navRail,
                             body: body,
-                            bottomBar: bottomBar,
                             chromeVisible: chromeVisible,
+                          )
+                        : FittedBox(
+                            // The child's ratio is the display's ratio by
+                            // construction, so `fill` scales it uniformly and
+                            // covers the display exactly — no bars, no stretch.
+                            fit: BoxFit.fill,
+                            child: SizedBox(
+                              width: constraints.maxWidth / scale,
+                              height: constraints.maxHeight / scale,
+                              child: _ShellContent(
+                                navRail: navRail,
+                                body: body,
+                                chromeVisible: chromeVisible,
+                              ),
+                            ),
                           ),
                   ),
                 ],
@@ -139,15 +168,13 @@ class KaraokeShell extends StatelessWidget {
 
 class _ShellContent extends StatelessWidget {
   const _ShellContent({
-    required this.topBar,
+    required this.navRail,
     required this.body,
-    required this.bottomBar,
     required this.chromeVisible,
   });
 
-  final Widget topBar;
+  final Widget? navRail;
   final Widget body;
-  final Widget bottomBar;
   final bool chromeVisible;
 
   @override
@@ -161,32 +188,47 @@ class _ShellContent extends StatelessWidget {
         final bottomPadding = AppLayout.shellBottomPaddingFor(
           constraints.maxHeight,
         );
-        final bodyGap = AppLayout.shellBodyGapFor(constraints.maxHeight);
-        final bottomGap = AppLayout.shellBottomGapFor(constraints.maxHeight);
+        final showRail = chromeVisible && navRail != null;
 
         return Padding(
-          // Fullscreen means fullscreen: with the bars gone the shell padding
+          // Fullscreen means fullscreen: with the rail gone the shell padding
           // would still frame the body in a band of background on all four
           // sides, so the body would only grow slightly instead of taking the
           // whole display.
+          //
+          // With the rail up every margin is the same hairline
+          // [AppLayout.navRailInset]: the four shell edges and the gap between
+          // the rail and the body. One value, no special case for the left
+          // side, so the selected destination's plate is framed identically
+          // wherever you look. Pages with no rail (splash, the license gate)
+          // keep the full responsive gutters: they are a centred card on a
+          // backdrop, not a stage.
           padding: chromeVisible
-              ? EdgeInsets.fromLTRB(
-                  horizontalPadding,
-                  topPadding,
-                  horizontalPadding,
-                  bottomPadding,
-                )
+              ? showRail
+                    ? const EdgeInsets.all(AppLayout.navRailInset)
+                    : EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        topPadding,
+                        horizontalPadding,
+                        bottomPadding,
+                      )
               : EdgeInsets.zero,
-          child: Column(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (chromeVisible) ...[topBar, SizedBox(height: bodyGap)],
+              if (showRail) ...[
+                SizedBox(
+                  width: AppLayout.navRailWidthFor(constraints.maxWidth),
+                  child: navRail,
+                ),
+                const SizedBox(width: AppLayout.navRailInset),
+              ],
               // Keyed so toggling the chrome does not destroy and rebuild the
-              // body. Without it the body's index in this Column shifts from 2
-              // to 0 when the bars go, the element is discarded, and every
+              // body. Without it the body's index in this Row shifts from 2
+              // to 0 when the rail goes, the element is discarded, and every
               // piece of state under it — the player's focus nodes, its
               // fullscreen overlay, its whole widget subtree — is recreated.
               Expanded(key: const ValueKey('karaokeShellBody'), child: body),
-              if (chromeVisible) ...[SizedBox(height: bottomGap), bottomBar],
             ],
           ),
         );

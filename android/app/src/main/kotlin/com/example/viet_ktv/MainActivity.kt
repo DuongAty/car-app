@@ -516,7 +516,7 @@ class MainActivity : AudioServiceActivity() {
         private const val SOURCE_YOUTUBE = "youtube"
         private const val SOURCE_SOUNDCLOUD = "soundcloud"
         private const val NOTIFICATION_PERMISSION_REQUEST_CODE = 1001
-        private const val SESSION_FILE_NAME = "youcar"
+        private const val SESSION_FILE_NAME = "wetube"
         private const val TAG = "AppUpdate"
 
         private var isInitialized: Boolean = false
